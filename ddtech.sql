@@ -318,13 +318,15 @@ CREATE TABLE carts (
 -- 3.11 cart_items : sản phẩm trong giỏ
 --      variant_key = IFNULL(variant_id, 0) để UNIQUE hoạt động cả khi
 --      variant_id NULL (MySQL coi NULL != NULL trong UNIQUE).
+--      Không dùng GENERATED COLUMN vì MySQL không cho FK CASCADE trên cột
+--      gốc của stored generated column (lỗi 1215) -> gán bằng trigger (mục 4).
 -- ---------------------------------------------------------------------
 CREATE TABLE cart_items (
   id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   cart_id      BIGINT UNSIGNED NOT NULL,
   product_id   BIGINT UNSIGNED NOT NULL,
   variant_id   BIGINT UNSIGNED NULL,
-  variant_key  BIGINT UNSIGNED GENERATED ALWAYS AS (IFNULL(variant_id, 0)) STORED,
+  variant_key  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '= IFNULL(variant_id,0), trigger tự gán',
   quantity     INT UNSIGNED    NOT NULL DEFAULT 1,
   created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Ngày thêm vào giỏ',
   updated_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -678,6 +680,22 @@ BEGIN
   IF NEW.order_code IS NULL OR NEW.order_code = '' THEN
     SET NEW.order_code = CONCAT('DD', LPAD((SELECT IFNULL(MAX(id), 0) + 1 FROM orders), 5, '0'));
   END IF;
+END$$
+
+-- cart_items.variant_key = IFNULL(variant_id, 0) để UNIQUE (cart_id, product_id, variant_key)
+-- chống trùng sản phẩm trong giỏ kể cả khi variant_id NULL
+CREATE TRIGGER trg_cart_items_before_insert
+BEFORE INSERT ON cart_items
+FOR EACH ROW
+BEGIN
+  SET NEW.variant_key = IFNULL(NEW.variant_id, 0);
+END$$
+
+CREATE TRIGGER trg_cart_items_before_update
+BEFORE UPDATE ON cart_items
+FOR EACH ROW
+BEGIN
+  SET NEW.variant_key = IFNULL(NEW.variant_id, 0);
 END$$
 
 DELIMITER ;
