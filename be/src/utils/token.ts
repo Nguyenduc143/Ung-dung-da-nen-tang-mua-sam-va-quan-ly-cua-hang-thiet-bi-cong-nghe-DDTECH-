@@ -29,12 +29,12 @@ const signToken = (
       role: user.role,
     },
     secret,
-    { expiresIn, keyid: randomUUID() },
+    { expiresIn, keyid: randomUUID(), algorithm: 'HS256' },
   );
 
 const verifyToken = (token: string, secret: string): AuthTokenPayload => {
   try {
-    const payload = jwt.verify(token, secret);
+    const payload = jwt.verify(token, secret, { algorithms: ['HS256'] });
 
     if (
       typeof payload === 'string' ||
