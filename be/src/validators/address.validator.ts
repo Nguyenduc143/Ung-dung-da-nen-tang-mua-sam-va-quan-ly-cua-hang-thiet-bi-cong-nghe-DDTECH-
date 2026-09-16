@@ -38,7 +38,7 @@ export const updateAddressSchema = z
 
 export const addressIdParamsSchema = z.object({
   id: z.string().regex(/^\d+$/, 'ID địa chỉ không hợp lệ'),
-});
+}).strict();
 
 export type CreateAddressInput = z.infer<typeof createAddressSchema>;
 export type UpdateAddressInput = z.infer<typeof updateAddressSchema>;

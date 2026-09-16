@@ -23,6 +23,89 @@ export const pool = mysql.createPool({
 
 export type DatabaseResult = RowDataPacket[] | RowDataPacket[][] | ResultSetHeader;
 
+type ProcedureExecutor = Pick<typeof pool, 'query'>;
+
+interface ProcedureMutationRecord extends RowDataPacket {
+  affectedRows: number;
+  insertId: number;
+}
+
+export const executeProcedure = async <T extends DatabaseResult>(
+  executor: ProcedureExecutor,
+  procedureName: string,
+  values: ExecuteValues[] = [],
+): Promise<[T, unknown]> => {
+  if (!/^sp_[a-z0-9_]+$/.test(procedureName)) {
+    throw new Error(`Invalid stored procedure name: ${procedureName}`);
+  }
+
+  const placeholders = values.map(() => '?').join(', ');
+  const [rawResult, fields] = await executor.query(
+    `CALL \`${procedureName}\`(${placeholders})`,
+    values,
+  );
+  const resultSets = rawResult as unknown[];
+  const firstResultSet = Array.isArray(resultSets[0]) ? resultSets[0] : [];
+  const mutation = firstResultSet[0] as ProcedureMutationRecord | undefined;
+
+  if (mutation && 'affectedRows' in mutation && 'insertId' in mutation) {
+    return [{
+      affectedRows: Number(mutation.affectedRows),
+      insertId: Number(mutation.insertId),
+      fieldCount: 0,
+      info: '',
+      serverStatus: 0,
+      warningStatus: 0,
+      changedRows: 0,
+    } as T, fields];
+  }
+
+  return [firstResultSet as T, fields];
+};
+
+export const executeDynamicProcedure = async <T extends DatabaseResult>(
+  executor: ProcedureExecutor,
+  procedureName: string,
+  sql: string,
+  values: ExecuteValues[] = [],
+): Promise<[T, unknown]> => {
+  if (!/^sp_dynamic_[a-z0-9_]+$/.test(procedureName)) {
+    throw new Error(`Invalid dynamic stored procedure name: ${procedureName}`);
+  }
+  const serializedValues = values.map((value) => {
+    if (value instanceof Date) {
+      return value.toISOString().slice(0, 23).replace('T', ' ');
+    }
+    if (Buffer.isBuffer(value)) {
+      return value.toString('base64');
+    }
+    return value;
+  });
+  const [rawResult, fields] = await executor.query(
+    `CALL \`${procedureName}\`(?, ?)`,
+    [sql, JSON.stringify(serializedValues)],
+  );
+  const sets = rawResult as unknown[];
+  const read = /^\s*SELECT\s/i.test(sql);
+  const rows = (read ? sets[0] : sets.find((item) => (
+    Array.isArray(item) && item[0] && typeof item[0] === 'object' && 'affectedRows' in item[0]
+  ))) as ProcedureMutationRecord[] | RowDataPacket[] | undefined;
+
+  if (!read) {
+    const mutation = rows?.[0] as ProcedureMutationRecord | undefined;
+    return [{
+      affectedRows: Number(mutation?.affectedRows ?? 0),
+      insertId: Number(mutation?.insertId ?? 0),
+      fieldCount: 0,
+      info: '',
+      serverStatus: 0,
+      warningStatus: 0,
+      changedRows: 0,
+    } as T, fields];
+  }
+  return [(Array.isArray(rows) ? rows : []) as T, fields];
+};
+
 export const executeQuery = async <T extends DatabaseResult>(
   sql: string,
   values: ExecuteValues[] = [],

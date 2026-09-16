@@ -28,7 +28,7 @@ export const loginSchema = z
 
 export const refreshTokenSchema = z
   .object({
-    refreshToken: z.string().min(1, 'Refresh token là bắt buộc'),
+    refreshToken: z.string().min(1, 'Refresh token là bắt buộc').max(4096),
   })
   .strict();
 

@@ -44,7 +44,7 @@ export const updateUserStatusSchema = z
 
 export const userIdParamsSchema = z.object({
   id: z.string().regex(/^\d+$/, 'ID người dùng không hợp lệ'),
-});
+}).strict();
 
 export const adminUserQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -52,7 +52,7 @@ export const adminUserQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
   role: z.enum(['CUSTOMER', 'ADMIN']).optional(),
   status: z.enum(['ACTIVE', 'LOCKED']).optional(),
-});
+}).strict();
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
