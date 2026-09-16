@@ -1,7 +1,7 @@
 import type { ExecuteValues } from 'mysql2';
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
-import { pool } from '../config/database';
+import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
 import type {
   CreateProductImageInput,
   CreateProductInput,
@@ -103,10 +103,6 @@ const VARIANT_COLUMNS = `id, product_id AS productId, sku, variant_name AS varia
   image_url AS imageUrl, sort_order AS sortOrder, status,
   created_at AS createdAt, updated_at AS updatedAt`;
 
-const IMAGE_COLUMNS = `id, product_id AS productId, variant_id AS variantId,
-  image_url AS imageUrl, alt_text AS altText, is_primary AS isPrimary,
-  sort_order AS sortOrder, created_at AS createdAt`;
-
 const productFields: Record<string, string> = {
   categoryId: 'category_id',
   brandId: 'brand_id',
@@ -202,24 +198,18 @@ export const listPublicProducts = async (query: ProductQuery) => {
   };
   const where = conditions.join(' AND ');
   const offset = (query.page - 1) * query.limit;
-  const [products] = await pool.execute<ProductRecord[]>(
-    `SELECT ${PRODUCT_COLUMNS}
+  const [products] = await executeDynamicProcedure<ProductRecord[]>(pool, 'sp_dynamic_product_listpublicproducts_1', `SELECT ${PRODUCT_COLUMNS}
      FROM products p
      INNER JOIN categories c ON c.id = p.category_id
      LEFT JOIN brands b ON b.id = p.brand_id
      WHERE ${where}
      ORDER BY ${sortMap[query.sort]}
-     LIMIT ? OFFSET ?`,
-    [...values, query.limit, offset],
-  );
-  const [countRows] = await pool.execute<CountRecord[]>(
-    `SELECT COUNT(*) AS total
+     LIMIT ? OFFSET ?`, [...values, query.limit, offset]);
+  const [countRows] = await executeDynamicProcedure<CountRecord[]>(pool, 'sp_dynamic_product_listpublicproducts_2', `SELECT COUNT(*) AS total
      FROM products p
      INNER JOIN categories c ON c.id = p.category_id
      LEFT JOIN brands b ON b.id = p.brand_id
-     WHERE ${where}`,
-    values,
-  );
+     WHERE ${where}`, values);
 
   return { products, total: countRows[0]?.total ?? 0 };
 };
@@ -231,15 +221,12 @@ export const findProduct = async (
 ): Promise<ProductRecord | null> => {
   const keyColumn = typeof key === 'number' ? 'p.id' : 'p.slug';
   const visible = " AND p.deleted_at IS NULL" + (publicOnly ? " AND p.status = 'ACTIVE'" : '');
-  const [rows] = await db.execute<ProductRecord[]>(
-    `SELECT ${PRODUCT_COLUMNS}
+  const [rows] = await executeDynamicProcedure<ProductRecord[]>(db, 'sp_dynamic_product_findproduct_1', `SELECT ${PRODUCT_COLUMNS}
      FROM products p
      INNER JOIN categories c ON c.id = p.category_id
      LEFT JOIN brands b ON b.id = p.brand_id
      WHERE ${keyColumn} = ?${visible}
-     LIMIT 1`,
-    [key],
-  );
+     LIMIT 1`, [key]);
   return rows[0] ?? null;
 };
 
@@ -247,11 +234,7 @@ export const findCategory = async (
   categoryId: number,
   db: Executor = pool,
 ): Promise<CatalogReferenceRecord | null> => {
-  const [rows] = await db.execute<CatalogReferenceRecord[]>(
-    `SELECT id, name, slug FROM categories
-     WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
-    [categoryId],
-  );
+  const [rows] = await executeProcedure<CatalogReferenceRecord[]>(db, 'sp_product_findcategory_1', [categoryId]);
   return rows[0] ?? null;
 };
 
@@ -259,11 +242,7 @@ export const findBrand = async (
   brandId: number,
   db: Executor = pool,
 ): Promise<CatalogReferenceRecord | null> => {
-  const [rows] = await db.execute<CatalogReferenceRecord[]>(
-    `SELECT id, name, slug FROM brands
-     WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
-    [brandId],
-  );
+  const [rows] = await executeProcedure<CatalogReferenceRecord[]>(db, 'sp_product_findbrand_1', [brandId]);
   return rows[0] ?? null;
 };
 
@@ -282,7 +261,7 @@ export const saveProduct = async (
     : `UPDATE products SET ${entries.map(([key]) => `\`${productFields[key]}\` = ?`).join(', ')}
        WHERE id = ? AND deleted_at IS NULL`;
   const parameters = productId === undefined ? values : [...values, productId];
-  const [result] = await db.execute<ResultSetHeader>(sql, parameters);
+  const [result] = await executeDynamicProcedure<ResultSetHeader>(db, 'sp_dynamic_product_saveproduct_1', sql, parameters);
   return productId ?? result.insertId;
 };
 
@@ -290,11 +269,7 @@ export const softDeleteProduct = async (
   productId: number,
   db: PoolConnection,
 ): Promise<boolean> => {
-  const [result] = await db.execute<ResultSetHeader>(
-    `UPDATE products SET status = 'INACTIVE', deleted_at = CURRENT_TIMESTAMP
-     WHERE id = ? AND deleted_at IS NULL`,
-    [productId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(db, 'sp_product_softdeleteproduct_1', [productId]);
   return result.affectedRows > 0;
 };
 
@@ -302,7 +277,7 @@ export const lockProduct = async (
   productId: number,
   db: PoolConnection,
 ): Promise<void> => {
-  await db.execute('SELECT id FROM products WHERE id = ? FOR UPDATE', [productId]);
+  await executeProcedure(db, 'sp_product_lockproduct_1', [productId]);
 };
 
 export const listVariants = async (
@@ -311,12 +286,9 @@ export const listVariants = async (
   db: Executor = pool,
 ): Promise<VariantRecord[]> => {
   const visible = publicOnly ? " AND status = 'ACTIVE'" : '';
-  const [rows] = await db.execute<VariantRecord[]>(
-    `SELECT ${VARIANT_COLUMNS} FROM product_variants
+  const [rows] = await executeDynamicProcedure<VariantRecord[]>(db, 'sp_dynamic_product_listvariants_1', `SELECT ${VARIANT_COLUMNS} FROM product_variants
      WHERE product_id = ?${visible}
-     ORDER BY sort_order, id`,
-    [productId],
-  );
+     ORDER BY sort_order, id`, [productId]);
   return rows;
 };
 
@@ -324,10 +296,7 @@ export const findVariant = async (
   variantId: number,
   db: Executor = pool,
 ): Promise<VariantRecord | null> => {
-  const [rows] = await db.execute<VariantRecord[]>(
-    `SELECT ${VARIANT_COLUMNS} FROM product_variants WHERE id = ? LIMIT 1`,
-    [variantId],
-  );
+  const [rows] = await executeProcedure<VariantRecord[]>(db, 'sp_product_findvariant_1', [variantId]);
   return rows[0] ?? null;
 };
 
@@ -343,21 +312,15 @@ export const saveVariant = async (
   const values = entries.map(([key, value]) => toDatabaseValue(key, value)) as ExecuteValues[];
 
   if (variantId === undefined) {
-    const [result] = await db.execute<ResultSetHeader>(
-      `INSERT INTO product_variants
+    const [result] = await executeDynamicProcedure<ResultSetHeader>(db, 'sp_dynamic_product_savevariant_1', `INSERT INTO product_variants
          (product_id, ${entries.map(([key]) => `\`${variantFields[key]}\``).join(', ')})
-       VALUES (?, ${entries.map(() => '?').join(', ')})`,
-      [productId, ...values],
-    );
+       VALUES (?, ${entries.map(() => '?').join(', ')})`, [productId, ...values]);
     return result.insertId;
   }
 
-  await db.execute(
-    `UPDATE product_variants
+  await executeDynamicProcedure(db, 'sp_dynamic_product_savevariant_2', `UPDATE product_variants
      SET ${entries.map(([key]) => `\`${variantFields[key]}\` = ?`).join(', ')}
-     WHERE id = ? AND product_id = ?`,
-    [...values, variantId, productId],
-  );
+     WHERE id = ? AND product_id = ?`, [...values, variantId, productId]);
   return variantId;
 };
 
@@ -366,10 +329,7 @@ export const deleteVariant = async (
   variantId: number,
   db: PoolConnection,
 ): Promise<boolean> => {
-  const [result] = await db.execute<ResultSetHeader>(
-    'DELETE FROM product_variants WHERE id = ? AND product_id = ?',
-    [variantId, productId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(db, 'sp_product_deletevariant_1', [variantId, productId]);
   return result.affectedRows > 0;
 };
 
@@ -377,13 +337,7 @@ export const variantHasOrderHistory = async (
   variantId: number,
   db: PoolConnection,
 ): Promise<boolean> => {
-  const [rows] = await db.execute<Array<RowDataPacket & { found: number }>>(
-    `SELECT 1 AS found
-     FROM order_items
-     WHERE variant_id = ?
-     LIMIT 1`,
-    [variantId],
-  );
+  const [rows] = await executeProcedure<Array<RowDataPacket & { found: number }>>(db, 'sp_product_varianthasorderhistory_1', [variantId]);
   return rows.length > 0;
 };
 
@@ -391,44 +345,26 @@ export const syncProductFromVariants = async (
   productId: number,
   db: PoolConnection,
 ): Promise<void> => {
-  const [stockRows] = await db.execute<Array<RowDataPacket & { stock: string | number }>>(
-    `SELECT COALESCE(SUM(stock), 0) AS stock FROM product_variants
-     WHERE product_id = ?`,
-    [productId],
-  );
-  const [priceRows] = await db.execute<Array<RowDataPacket & {
+  const [stockRows] = await executeProcedure<Array<RowDataPacket & { stock: string | number }>>(db, 'sp_product_syncproductfromvariants_1', [productId]);
+  const [priceRows] = await executeProcedure<Array<RowDataPacket & {
     price: string | number;
     salePrice: string | number | null;
-  }>>(
-    `SELECT price, sale_price AS salePrice FROM product_variants
-     WHERE product_id = ? AND status = 'ACTIVE'
-     ORDER BY COALESCE(sale_price, price), sort_order, id
-     LIMIT 1`,
-    [productId],
-  );
+  }>>(db, 'sp_product_syncproductfromvariants_2', [productId]);
   const cheapest = priceRows[0];
 
   if (cheapest) {
-    await db.execute(
-      'UPDATE products SET stock = ?, price = ?, sale_price = ? WHERE id = ?',
-      [Number(stockRows[0]?.stock ?? 0), cheapest.price, cheapest.salePrice, productId],
-    );
+    await executeProcedure(db, 'sp_product_syncproductfromvariants_3', [Number(stockRows[0]?.stock ?? 0), cheapest.price, cheapest.salePrice, productId]);
     return;
   }
 
-  await db.execute('UPDATE products SET stock = 0 WHERE id = ?', [productId]);
+  await executeProcedure(db, 'sp_product_syncproductfromvariants_4', [productId]);
 };
 
 export const listImages = async (
   productId: number,
   db: Executor = pool,
 ): Promise<ProductImageRecord[]> => {
-  const [rows] = await db.execute<ProductImageRecord[]>(
-    `SELECT ${IMAGE_COLUMNS} FROM product_images
-     WHERE product_id = ?
-     ORDER BY is_primary DESC, sort_order, id`,
-    [productId],
-  );
+  const [rows] = await executeProcedure<ProductImageRecord[]>(db, 'sp_product_listimages_1', [productId]);
   return rows;
 };
 
@@ -436,28 +372,19 @@ export const findImage = async (
   imageId: number,
   db: Executor = pool,
 ): Promise<ProductImageRecord | null> => {
-  const [rows] = await db.execute<ProductImageRecord[]>(
-    `SELECT ${IMAGE_COLUMNS} FROM product_images WHERE id = ? LIMIT 1`,
-    [imageId],
-  );
+  const [rows] = await executeProcedure<ProductImageRecord[]>(db, 'sp_product_findimage_1', [imageId]);
   return rows[0] ?? null;
 };
 
 export const lockImages = async (productId: number, db: PoolConnection): Promise<void> => {
-  await db.execute(
-    'SELECT id FROM product_images WHERE product_id = ? ORDER BY id FOR UPDATE',
-    [productId],
-  );
+  await executeProcedure(db, 'sp_product_lockimages_1', [productId]);
 };
 
 export const clearPrimaryImage = async (
   productId: number,
   db: PoolConnection,
 ): Promise<void> => {
-  await db.execute(
-    'UPDATE product_images SET is_primary = 0 WHERE product_id = ? AND is_primary = 1',
-    [productId],
-  );
+  await executeProcedure(db, 'sp_product_clearprimaryimage_1', [productId]);
 };
 
 export const createImage = async (
@@ -466,19 +393,14 @@ export const createImage = async (
   isPrimary: boolean,
   db: PoolConnection,
 ): Promise<number> => {
-  const [result] = await db.execute<ResultSetHeader>(
-    `INSERT INTO product_images
-       (product_id, variant_id, image_url, alt_text, is_primary, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [
+  const [result] = await executeProcedure<ResultSetHeader>(db, 'sp_product_createimage_1', [
       productId,
       input.variantId ?? null,
       input.imageUrl,
       input.altText ?? null,
       isPrimary ? 1 : 0,
       input.sortOrder ?? 0,
-    ],
-  );
+    ]);
   return result.insertId;
 };
 
@@ -487,10 +409,7 @@ export const setPrimaryImage = async (
   imageId: number,
   db: PoolConnection,
 ): Promise<boolean> => {
-  const [result] = await db.execute<ResultSetHeader>(
-    'UPDATE product_images SET is_primary = 1 WHERE id = ? AND product_id = ?',
-    [imageId, productId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(db, 'sp_product_setprimaryimage_1', [imageId, productId]);
   return result.affectedRows > 0;
 };
 
@@ -499,10 +418,7 @@ export const deleteImage = async (
   imageId: number,
   db: PoolConnection,
 ): Promise<boolean> => {
-  const [result] = await db.execute<ResultSetHeader>(
-    'DELETE FROM product_images WHERE id = ? AND product_id = ?',
-    [imageId, productId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(db, 'sp_product_deleteimage_1', [imageId, productId]);
   return result.affectedRows > 0;
 };
 
@@ -510,10 +426,6 @@ export const findFirstImageId = async (
   productId: number,
   db: PoolConnection,
 ): Promise<number | null> => {
-  const [rows] = await db.execute<Array<RowDataPacket & { id: number }>>(
-    `SELECT id FROM product_images
-     WHERE product_id = ? ORDER BY sort_order, id LIMIT 1`,
-    [productId],
-  );
+  const [rows] = await executeProcedure<Array<RowDataPacket & { id: number }>>(db, 'sp_product_findfirstimageid_1', [productId]);
   return rows[0]?.id ?? null;
 };

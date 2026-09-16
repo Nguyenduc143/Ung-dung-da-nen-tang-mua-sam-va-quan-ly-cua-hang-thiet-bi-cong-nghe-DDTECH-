@@ -1,6 +1,6 @@
 import type { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import type { ExecuteValues } from 'mysql2';
-import { pool } from '../config/database';
+import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
 
 export type CatalogKind = 'categories' | 'brands' | 'category_attributes';
 type Executor = typeof pool | PoolConnection;
@@ -18,16 +18,13 @@ function columns(kind: CatalogKind) {
 export async function list(kind: CatalogKind, publicOnly: boolean, categoryId?: number, db: Executor = pool) {
   const where = kind === 'category_attributes' ? 'category_id = ?' :
     "deleted_at IS NULL" + (publicOnly ? " AND status = 'ACTIVE'" : '');
-  const [rows] = await db.execute<CatalogRow[]>(
-    `SELECT ${columns(kind)} FROM ${kind} WHERE ${where} ORDER BY ${kind === 'brands' ? 'name' : 'sort_order'}, id`,
-    kind === 'category_attributes' ? [categoryId!] : [],
-  );
+  const [rows] = await executeDynamicProcedure<CatalogRow[]>(db, 'sp_dynamic_catalog_list_1', `SELECT ${columns(kind)} FROM ${kind} WHERE ${where} ORDER BY ${kind === 'brands' ? 'name' : 'sort_order'}, id`, kind === 'category_attributes' ? [categoryId!] : []);
   return rows;
 }
 export async function find(kind: CatalogKind, key: number | string, publicOnly = false, db: Executor = pool) {
   const where = typeof key === 'number' ? 'id = ?' : 'slug = ?';
   const visible = kind === 'category_attributes' ? '' : " AND deleted_at IS NULL" + (publicOnly ? " AND status = 'ACTIVE'" : '');
-  const [rows] = await db.execute<CatalogRow[]>(`SELECT ${columns(kind)} FROM ${kind} WHERE ${where}${visible}`, [key]);
+  const [rows] = await executeDynamicProcedure<CatalogRow[]>(db, 'sp_dynamic_catalog_find_1', `SELECT ${columns(kind)} FROM ${kind} WHERE ${where}${visible}`, [key]);
   return rows[0] ?? null;
 }
 export async function save(kind: CatalogKind, data: Record<string, unknown>, id: number | undefined, db: Executor) {
@@ -37,18 +34,18 @@ export async function save(kind: CatalogKind, data: Record<string, unknown>, id:
   const sql = id === undefined
     ? `INSERT INTO ${kind} (${entries.map(([key]) => `\`${map[key]}\``).join(',')}) VALUES (${entries.map(() => '?').join(',')})`
     : `UPDATE ${kind} SET ${entries.map(([key]) => `\`${map[key]}\` = ?`).join(',')} WHERE id = ?`;
-  const [result] = await db.execute<ResultSetHeader>(sql, id === undefined ? values : [...values, id]);
+  const [result] = await executeDynamicProcedure<ResultSetHeader>(db, 'sp_dynamic_catalog_save_1', sql, id === undefined ? values : [...values, id]);
   return id ?? result.insertId;
 }
 export async function remove(kind: CatalogKind, id: number, db: Executor) {
-  await db.execute(kind === 'category_attributes' ? 'DELETE FROM category_attributes WHERE id = ?' :
+  await executeDynamicProcedure(db, 'sp_dynamic_catalog_remove_1', kind === 'category_attributes' ? 'DELETE FROM category_attributes WHERE id = ?' :
     `UPDATE ${kind} SET deleted_at = CURRENT_TIMESTAMP, status = 'HIDDEN' WHERE id = ?`, [id]);
 }
 export async function lockTree(db: PoolConnection) {
   // Serialize category mutations, including two concurrent reparent requests.
-  const [rows] = await db.execute<CatalogRow[]>('SELECT id, parent_id AS parentId, deleted_at AS deletedAt FROM categories ORDER BY id FOR UPDATE');
+  const [rows] = await executeProcedure<CatalogRow[]>(db, 'sp_catalog_locktree_1', []);
   return rows;
 }
 export async function lockRecord(kind: CatalogKind, id: number, db: PoolConnection) {
-  await db.execute(`SELECT id FROM ${kind} WHERE id = ? FOR UPDATE`, [id]);
+  await executeDynamicProcedure(db, 'sp_dynamic_catalog_lockrecord_1', `SELECT id FROM ${kind} WHERE id = ? FOR UPDATE`, [id]);
 }

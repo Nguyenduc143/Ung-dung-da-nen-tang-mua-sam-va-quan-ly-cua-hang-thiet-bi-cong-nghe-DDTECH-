@@ -1,0 +1,497 @@
+{
+  "info": {
+    "name": "DDTECH - MCP variant verification",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Test run snapshot; fixture records have been removed. Provision fresh test fixtures and credentials before rerunning. No production credentials included."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "mcp-1789529893769@example.invalid",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Login user",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/login",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"mcp-1789529893769-user@example.invalid\",\"password\":\"McpTest456!Ab\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('accessToken',j.data.accessToken);",
+              "if(pm.response.code<300) pm.collectionVariables.set('refreshToken',j.data.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login admin",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/login",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('adminToken',j.data.accessToken);",
+              "if(pm.response.code<300) pm.collectionVariables.set('adminRefresh',j.data.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category extra",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/categories",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"mcp-1789529893769-verify\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('catId',j.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Variant product",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/products",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"mcp-1789529893769-verify\",\"sku\":\"mcp-1789529893769-verify\",\"categoryId\":{{catId}},\"price\":200000,\"hasVariants\":true}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('prodId',j.data.product.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create variant",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/products/{{prodId}}/variants",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"sku\":\"mcp-1789529893769-verify-v\",\"variantName\":\"256GB\",\"price\":200000,\"stock\":5}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('varId',j.data.variant.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Variant missing rejected",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/cart/items",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productId\":{{prodId}},\"quantity\":1}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 422',()=>pm.response.to.have.status(422));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject delete variant with stock",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/variants/{{varId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409',()=>pm.response.to.have.status(409));",
+              "const j=pm.response.json();",
+              "pm.test('success false',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Set stock to zero through inventory",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/inventory/adjust",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productId\":{{prodId}},\"variantId\":{{varId}},\"quantity\":-5,\"note\":\"MCP cleanup verification\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete variant",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/variants/{{varId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete product",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/products/{{prodId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete category",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/categories/{{catId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin logout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/logout",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\":\"{{adminRefresh}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

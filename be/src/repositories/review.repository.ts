@@ -1,7 +1,7 @@
 import type { ExecuteValues } from 'mysql2';
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
-import { pool } from '../config/database';
+import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
 import type {
   AdminReviewQuery,
   CreateReviewInput,
@@ -52,21 +52,15 @@ export const listProductReviews = async (
   const ratingFilter = query.rating === undefined ? '' : ' AND r.rating = ?';
   const values = query.rating === undefined ? [productId] : [productId, query.rating];
   const offset = (query.page - 1) * query.limit;
-  const [reviews] = await pool.execute<ReviewRecord[]>(
-    `SELECT ${REVIEW_COLUMNS}
+  const [reviews] = await executeDynamicProcedure<ReviewRecord[]>(pool, 'sp_dynamic_review_listproductreviews_1', `SELECT ${REVIEW_COLUMNS}
      FROM reviews r
      INNER JOIN users u ON u.id = r.user_id
      INNER JOIN products p ON p.id = r.product_id
      WHERE r.product_id = ? AND r.status = 'APPROVED'${ratingFilter}
      ORDER BY r.created_at DESC, r.id DESC
-     LIMIT ? OFFSET ?`,
-    [...values, query.limit, offset],
-  );
-  const [countRows] = await pool.execute<CountRecord[]>(
-    `SELECT COUNT(*) AS total FROM reviews r
-     WHERE r.product_id = ? AND r.status = 'APPROVED'${ratingFilter}`,
-    values,
-  );
+     LIMIT ? OFFSET ?`, [...values, query.limit, offset]);
+  const [countRows] = await executeDynamicProcedure<CountRecord[]>(pool, 'sp_dynamic_review_listproductreviews_2', `SELECT COUNT(*) AS total FROM reviews r
+     WHERE r.product_id = ? AND r.status = 'APPROVED'${ratingFilter}`, values);
   return { reviews, total: countRows[0]?.total ?? 0 };
 };
 
@@ -91,20 +85,14 @@ export const listAdminReviews = async (query: AdminReviewQuery) => {
   }
   const where = conditions.length === 0 ? '1 = 1' : conditions.join(' AND ');
   const offset = (query.page - 1) * query.limit;
-  const [reviews] = await pool.execute<ReviewRecord[]>(
-    `SELECT ${REVIEW_COLUMNS}
+  const [reviews] = await executeDynamicProcedure<ReviewRecord[]>(pool, 'sp_dynamic_review_listadminreviews_1', `SELECT ${REVIEW_COLUMNS}
      FROM reviews r
      INNER JOIN users u ON u.id = r.user_id
      INNER JOIN products p ON p.id = r.product_id
      WHERE ${where}
      ORDER BY r.created_at DESC, r.id DESC
-     LIMIT ? OFFSET ?`,
-    [...values, query.limit, offset],
-  );
-  const [countRows] = await pool.execute<CountRecord[]>(
-    `SELECT COUNT(*) AS total FROM reviews r WHERE ${where}`,
-    values,
-  );
+     LIMIT ? OFFSET ?`, [...values, query.limit, offset]);
+  const [countRows] = await executeDynamicProcedure<CountRecord[]>(pool, 'sp_dynamic_review_listadminreviews_2', `SELECT COUNT(*) AS total FROM reviews r WHERE ${where}`, values);
   return { reviews, total: countRows[0]?.total ?? 0 };
 };
 
@@ -116,14 +104,11 @@ export const findReview = async (
 ): Promise<ReviewRecord | null> => {
   const ownerFilter = userId === undefined ? '' : ' AND r.user_id = ?';
   const values = userId === undefined ? [reviewId] : [reviewId, userId];
-  const [rows] = await executor.execute<ReviewRecord[]>(
-    `SELECT ${REVIEW_COLUMNS}
+  const [rows] = await executeDynamicProcedure<ReviewRecord[]>(executor, 'sp_dynamic_review_findreview_1', `SELECT ${REVIEW_COLUMNS}
      FROM reviews r
      INNER JOIN users u ON u.id = r.user_id
      INNER JOIN products p ON p.id = r.product_id
-     WHERE r.id = ?${ownerFilter} LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`,
-    values,
-  );
+     WHERE r.id = ?${ownerFilter} LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`, values);
   return rows[0] ?? null;
 };
 
@@ -132,15 +117,7 @@ export const findDeliveredPurchase = async (
   productId: number,
   connection: PoolConnection,
 ): Promise<number | null> => {
-  const [rows] = await connection.execute<OrderReferenceRecord[]>(
-    `SELECT o.id
-     FROM orders o
-     INNER JOIN order_items oi ON oi.order_id = o.id
-     WHERE o.user_id = ? AND o.status = 'DELIVERED' AND oi.product_id = ?
-     ORDER BY o.delivered_at DESC, o.id DESC
-     LIMIT 1`,
-    [userId, productId],
-  );
+  const [rows] = await executeProcedure<OrderReferenceRecord[]>(connection, 'sp_review_finddeliveredpurchase_1', [userId, productId]);
   return rows[0]?.id ?? null;
 };
 
@@ -151,12 +128,7 @@ export const createReview = async (
   input: CreateReviewInput,
   connection: PoolConnection,
 ): Promise<number> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    `INSERT INTO reviews
-       (user_id, product_id, order_id, rating, comment, images,
-        is_verified_purchase, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'APPROVED')`,
-    [
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_review_createreview_1', [
       userId,
       productId,
       orderId,
@@ -164,8 +136,7 @@ export const createReview = async (
       input.comment ?? null,
       input.images === undefined || input.images === null ? null : JSON.stringify(input.images),
       orderId === null ? 0 : 1,
-    ],
-  );
+    ]);
   return result.insertId;
 };
 
@@ -183,18 +154,15 @@ export const updateReview = async (
   const values = entries.map(([key, value]) => (
     key === 'images' && value !== null ? JSON.stringify(value) : value
   )) as ExecuteValues[];
-  await connection.execute(
-    `UPDATE reviews SET ${entries.map(([key]) => `${fieldMap[key]} = ?`).join(', ')}
-     WHERE id = ?`,
-    [...values, reviewId],
-  );
+  await executeDynamicProcedure(connection, 'sp_dynamic_review_updatereview_1', `UPDATE reviews SET ${entries.map(([key]) => `${fieldMap[key]} = ?`).join(', ')}
+     WHERE id = ?`, [...values, reviewId]);
 };
 
 export const deleteReview = async (
   reviewId: number,
   connection: PoolConnection,
 ): Promise<void> => {
-  await connection.execute('DELETE FROM reviews WHERE id = ?', [reviewId]);
+  await executeProcedure(connection, 'sp_review_deletereview_1', [reviewId]);
 };
 
 export const updateStatus = async (
@@ -202,7 +170,7 @@ export const updateStatus = async (
   status: ReviewRecord['status'],
   connection: PoolConnection,
 ): Promise<void> => {
-  await connection.execute('UPDATE reviews SET status = ? WHERE id = ?', [status, reviewId]);
+  await executeProcedure(connection, 'sp_review_updatestatus_1', [status, reviewId]);
 };
 
 export const replyReview = async (
@@ -210,27 +178,12 @@ export const replyReview = async (
   reply: string,
   connection: PoolConnection,
 ): Promise<void> => {
-  await connection.execute(
-    `UPDATE reviews SET admin_reply = ?, replied_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    [reply, reviewId],
-  );
+  await executeProcedure(connection, 'sp_review_replyreview_1', [reply, reviewId]);
 };
 
 export const syncProductRating = async (
   productId: number,
   connection: PoolConnection,
 ): Promise<void> => {
-  await connection.execute(
-    `UPDATE products p
-     SET p.rating_avg = COALESCE((
-           SELECT ROUND(AVG(r.rating), 1) FROM reviews r
-           WHERE r.product_id = p.id AND r.status = 'APPROVED'
-         ), 0),
-         p.review_count = (
-           SELECT COUNT(*) FROM reviews r
-           WHERE r.product_id = p.id AND r.status = 'APPROVED'
-         )
-     WHERE p.id = ?`,
-    [productId],
-  );
+  await executeProcedure(connection, 'sp_review_syncproductrating_1', [productId]);
 };

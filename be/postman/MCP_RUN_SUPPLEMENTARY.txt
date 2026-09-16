@@ -1,0 +1,263 @@
+🚀 Starting collection: DDTECH - MCP supplementary API tests
+🎯 Starting collection run...
+
+
+📝 Request: Login user
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Login admin
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category extra
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Variant product
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Create variant
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Update variant
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Variant import
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Variant missing rejected
+  📊 Test Results:
+    ✗ HTTP 409
+       └─ Error: expected response to have status code 409 but got 422
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 1 passed | ✗ 1 failed
+
+
+📝 Request: Variant add cart
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart get
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart delete item
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart add again
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart clear
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Address create
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Address list
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Address update
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Address default
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Address delete
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Notifications list
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Notification read
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Notifications read all
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Unread zero
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Delete variant
+  📊 Test Results:
+    ✗ HTTP 200
+       └─ Error: expected response to have status code 200 but got 409
+    ✗ success
+       └─ Error: expected false to deeply equal true
+    ────────────────────────────────────────
+    2 tests | ✓ 0 passed | ✗ 2 failed
+
+
+📝 Request: Delete product
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Delete category
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Password change
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Old password rejected
+  📊 Test Results:
+    ✓ HTTP 401
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: New password login
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Logout
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin logout
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+=== ✅ Run completed! ===
+
+📊 Overall Test Statistics:
+  Total tests: 60
+  Passed: 57 ✅
+  Failed: 3 ❌
+  Success rate: 95.0%
+
+📈 Request Summary:
+  Total requests: 30
+  Failed requests: 0
+  Total assertions: 60
+  Failed assertions: 3
+  Total iterations: 1
+  Failed iterations: 0
+⏱️  Duration: 34.79s

@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "db:procedures": "node scripts/install-procedures.cjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node tests/run-all.cjs",
     "test:integration": "node tests/run-all.cjs"

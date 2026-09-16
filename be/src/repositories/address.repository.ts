@@ -1,6 +1,6 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
-import { pool } from '../config/database';
+import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
 import type { CreateAddressInput, UpdateAddressInput } from '../validators/address.validator';
 
 export interface AddressRecord extends RowDataPacket {
@@ -18,15 +18,8 @@ export interface AddressRecord extends RowDataPacket {
   updated_at: Date;
 }
 
-const ADDRESS_COLUMNS = `id, user_id, receiver_name, receiver_phone, province, district,
-  ward, address_line, address_type, is_default, created_at, updated_at`;
-
 export const listByUser = async (userId: number): Promise<AddressRecord[]> => {
-  const [rows] = await pool.execute<AddressRecord[]>(
-    `SELECT ${ADDRESS_COLUMNS} FROM addresses
-     WHERE user_id = ? ORDER BY is_default DESC, created_at DESC`,
-    [userId],
-  );
+  const [rows] = await executeProcedure<AddressRecord[]>(pool, 'sp_address_listbyuser_1', [userId]);
   return rows;
 };
 
@@ -36,11 +29,7 @@ export const findOwnedById = async (
   connection?: PoolConnection,
 ): Promise<AddressRecord | null> => {
   const executor = connection ?? pool;
-  const [rows] = await executor.execute<AddressRecord[]>(
-    `SELECT ${ADDRESS_COLUMNS} FROM addresses
-     WHERE id = ? AND user_id = ? LIMIT 1`,
-    [addressId, userId],
-  );
+  const [rows] = await executeProcedure<AddressRecord[]>(executor, 'sp_address_findownedbyid_1', [addressId, userId]);
   return rows[0] ?? null;
 };
 
@@ -48,7 +37,7 @@ export const clearDefault = async (
   connection: PoolConnection,
   userId: number,
 ): Promise<void> => {
-  await connection.execute('UPDATE addresses SET is_default = 0 WHERE user_id = ? AND is_default = 1', [
+  await executeProcedure(connection, 'sp_address_cleardefault_1', [
     userId,
   ]);
 };
@@ -58,12 +47,7 @@ export const createAddress = async (
   userId: number,
   input: CreateAddressInput,
 ): Promise<number> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    `INSERT INTO addresses
-       (user_id, receiver_name, receiver_phone, province, district, ward,
-        address_line, address_type, is_default)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_address_createaddress_1', [
       userId,
       input.receiverName,
       input.receiverPhone,
@@ -73,8 +57,7 @@ export const createAddress = async (
       input.addressLine,
       input.addressType,
       input.isDefault ? 1 : 0,
-    ],
-  );
+    ]);
   return result.insertId;
 };
 
@@ -95,18 +78,12 @@ export const updateOwnedAddress = async (
   const entries = Object.entries(input);
   const assignments = entries.map(([field]) => `${fieldMap[field]} = ?`).join(', ');
   const values = entries.map(([, value]) => value);
-  const [result] = await pool.execute<ResultSetHeader>(
-    `UPDATE addresses SET ${assignments} WHERE id = ? AND user_id = ?`,
-    [...values, addressId, userId],
-  );
+  const [result] = await executeDynamicProcedure<ResultSetHeader>(pool, 'sp_dynamic_address_updateownedaddress_1', `UPDATE addresses SET ${assignments} WHERE id = ? AND user_id = ?`, [...values, addressId, userId]);
   return result.affectedRows > 0;
 };
 
 export const deleteOwnedAddress = async (userId: number, addressId: number): Promise<boolean> => {
-  const [result] = await pool.execute<ResultSetHeader>(
-    'DELETE FROM addresses WHERE id = ? AND user_id = ?',
-    [addressId, userId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(pool, 'sp_address_deleteownedaddress_1', [addressId, userId]);
   return result.affectedRows > 0;
 };
 
@@ -115,9 +92,6 @@ export const setDefault = async (
   userId: number,
   addressId: number,
 ): Promise<boolean> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    'UPDATE addresses SET is_default = 1 WHERE id = ? AND user_id = ?',
-    [addressId, userId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_address_setdefault_1', [addressId, userId]);
   return result.affectedRows > 0;
 };

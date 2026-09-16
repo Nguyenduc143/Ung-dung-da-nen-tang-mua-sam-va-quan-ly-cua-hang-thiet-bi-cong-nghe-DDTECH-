@@ -1,0 +1,116 @@
+🚀 Starting collection: DDTECH - MCP variant verification
+🎯 Starting collection run...
+
+
+📝 Request: Login user
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Login admin
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category extra
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Variant product
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Create variant
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Variant missing rejected
+  📊 Test Results:
+    ✓ HTTP 422
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Reject delete variant with stock
+  📊 Test Results:
+    ✓ HTTP 409
+    ✓ success false
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Set stock to zero through inventory
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Delete variant
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Delete product
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Delete category
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin logout
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+=== ✅ Run completed! ===
+
+📊 Overall Test Statistics:
+  Total tests: 24
+  Passed: 24 ✅
+  Failed: 0 ❌
+  Success rate: 100.0%
+
+📈 Request Summary:
+  Total requests: 12
+  Failed requests: 0
+  Total assertions: 24
+  Failed assertions: 0
+  Total iterations: 1
+  Failed iterations: 0
+⏱️  Duration: 13.95s

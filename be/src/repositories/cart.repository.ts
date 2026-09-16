@@ -1,6 +1,6 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
-import { pool } from '../config/database';
+import { executeProcedure, pool } from '../config/database';
 
 export interface CartRecord extends RowDataPacket {
   id: number;
@@ -66,20 +66,12 @@ export const getOrCreateCart = async (
   connection: PoolConnection,
   userId: number,
 ): Promise<number> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    `INSERT INTO carts (user_id) VALUES (?)
-     ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
-    [userId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_cart_getorcreatecart_1', [userId]);
   return result.insertId;
 };
 
 export const findCartByUser = async (userId: number): Promise<CartRecord | null> => {
-  const [rows] = await pool.execute<CartRecord[]>(
-    `SELECT id, user_id AS userId, created_at AS createdAt, updated_at AS updatedAt
-     FROM carts WHERE user_id = ? LIMIT 1`,
-    [userId],
-  );
+  const [rows] = await executeProcedure<CartRecord[]>(pool, 'sp_cart_findcartbyuser_1', [userId]);
   return rows[0] ?? null;
 };
 
@@ -87,11 +79,7 @@ export const findProductForUpdate = async (
   connection: PoolConnection,
   productId: number,
 ): Promise<CartProductRecord | null> => {
-  const [rows] = await connection.execute<CartProductRecord[]>(
-    `SELECT id, has_variants AS hasVariants, stock, status, deleted_at AS deletedAt
-     FROM products WHERE id = ? LIMIT 1 FOR UPDATE`,
-    [productId],
-  );
+  const [rows] = await executeProcedure<CartProductRecord[]>(connection, 'sp_cart_findproductforupdate_1', [productId]);
   return rows[0] ?? null;
 };
 
@@ -99,11 +87,7 @@ export const findVariantForUpdate = async (
   connection: PoolConnection,
   variantId: number,
 ): Promise<CartVariantRecord | null> => {
-  const [rows] = await connection.execute<CartVariantRecord[]>(
-    `SELECT id, product_id AS productId, stock, status
-     FROM product_variants WHERE id = ? LIMIT 1 FOR UPDATE`,
-    [variantId],
-  );
+  const [rows] = await executeProcedure<CartVariantRecord[]>(connection, 'sp_cart_findvariantforupdate_1', [variantId]);
   return rows[0] ?? null;
 };
 
@@ -113,14 +97,7 @@ export const findCartItemForUpdate = async (
   productId: number,
   variantId: number | null,
 ): Promise<OwnedCartItemRecord | null> => {
-  const [rows] = await connection.execute<OwnedCartItemRecord[]>(
-    `SELECT id, cart_id AS cartId, product_id AS productId,
-            variant_id AS variantId, quantity
-     FROM cart_items
-     WHERE cart_id = ? AND product_id = ? AND variant_id <=> ?
-     LIMIT 1 FOR UPDATE`,
-    [cartId, productId, variantId],
-  );
+  const [rows] = await executeProcedure<OwnedCartItemRecord[]>(connection, 'sp_cart_findcartitemforupdate_1', [cartId, productId, variantId]);
   return rows[0] ?? null;
 };
 
@@ -129,12 +106,7 @@ export const findOwnedCartItemForUpdate = async (
   cartId: number,
   itemId: number,
 ): Promise<OwnedCartItemRecord | null> => {
-  const [rows] = await connection.execute<OwnedCartItemRecord[]>(
-    `SELECT id, cart_id AS cartId, product_id AS productId,
-            variant_id AS variantId, quantity
-     FROM cart_items WHERE id = ? AND cart_id = ? LIMIT 1 FOR UPDATE`,
-    [itemId, cartId],
-  );
+  const [rows] = await executeProcedure<OwnedCartItemRecord[]>(connection, 'sp_cart_findownedcartitemforupdate_1', [itemId, cartId]);
   return rows[0] ?? null;
 };
 
@@ -145,11 +117,7 @@ export const createCartItem = async (
   variantId: number | null,
   quantity: number,
 ): Promise<number> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    `INSERT INTO cart_items (cart_id, product_id, variant_id, quantity)
-     VALUES (?, ?, ?, ?)`,
-    [cartId, productId, variantId, quantity],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_cart_createcartitem_1', [cartId, productId, variantId, quantity]);
   return result.insertId;
 };
 
@@ -159,10 +127,7 @@ export const updateCartItemQuantity = async (
   itemId: number,
   quantity: number,
 ): Promise<boolean> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    'UPDATE cart_items SET quantity = ? WHERE id = ? AND cart_id = ?',
-    [quantity, itemId, cartId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_cart_updatecartitemquantity_1', [quantity, itemId, cartId]);
   return result.affectedRows > 0;
 };
 
@@ -171,10 +136,7 @@ export const deleteCartItem = async (
   cartId: number,
   itemId: number,
 ): Promise<boolean> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    'DELETE FROM cart_items WHERE id = ? AND cart_id = ?',
-    [itemId, cartId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_cart_deletecartitem_1', [itemId, cartId]);
   return result.affectedRows > 0;
 };
 
@@ -182,10 +144,7 @@ export const clearCart = async (
   connection: PoolConnection,
   cartId: number,
 ): Promise<number> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    'DELETE FROM cart_items WHERE cart_id = ?',
-    [cartId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_cart_clearcart_1', [cartId]);
   return result.affectedRows;
 };
 
@@ -193,41 +152,10 @@ export const touchCart = async (
   connection: PoolConnection,
   cartId: number,
 ): Promise<void> => {
-  await connection.execute('UPDATE carts SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [cartId]);
+  await executeProcedure(connection, 'sp_cart_touchcart_1', [cartId]);
 };
 
 export const listCartItems = async (cartId: number): Promise<CartItemDetailRecord[]> => {
-  const [rows] = await pool.execute<CartItemDetailRecord[]>(
-    `SELECT ci.id, ci.quantity, ci.created_at AS createdAt, ci.updated_at AS updatedAt,
-            p.id AS productId, p.name AS productName, p.slug AS productSlug,
-            p.sku AS productSku, p.status AS productStatus,
-            p.deleted_at AS productDeletedAt, p.has_variants AS hasVariants,
-            p.price AS productPrice, p.sale_price AS productSalePrice,
-            p.stock AS productStock, p.rating_avg AS ratingAvg,
-            p.review_count AS reviewCount,
-            pv.id AS variantId, pv.variant_name AS variantName, pv.sku AS variantSku,
-            pv.attributes AS variantAttributes, pv.price AS variantPrice,
-            pv.sale_price AS variantSalePrice, pv.stock AS variantStock,
-            pv.status AS variantStatus,
-            CASE WHEN ci.variant_id IS NULL
-                 THEN COALESCE(p.sale_price, p.price)
-                 ELSE COALESCE(pv.sale_price, pv.price)
-            END AS currentPrice,
-            CASE WHEN ci.variant_id IS NULL THEN p.stock ELSE pv.stock END AS availableStock,
-            COALESCE(
-              pv.image_url,
-              (SELECT pi.image_url FROM product_images pi
-               WHERE pi.product_id = p.id
-               ORDER BY (pi.variant_id = ci.variant_id) DESC,
-                        pi.is_primary DESC, pi.sort_order, pi.id
-               LIMIT 1)
-            ) AS imageUrl
-     FROM cart_items ci
-     INNER JOIN products p ON p.id = ci.product_id
-     LEFT JOIN product_variants pv ON pv.id = ci.variant_id
-     WHERE ci.cart_id = ?
-     ORDER BY ci.created_at DESC, ci.id DESC`,
-    [cartId],
-  );
+  const [rows] = await executeProcedure<CartItemDetailRecord[]>(pool, 'sp_cart_listcartitems_1', [cartId]);
   return rows;
 };
