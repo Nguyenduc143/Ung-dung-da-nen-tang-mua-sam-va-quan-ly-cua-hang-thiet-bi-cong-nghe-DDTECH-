@@ -1,12 +1,13 @@
 import type { PoolConnection } from 'mysql2/promise';
+import * as cartItemRepository from '../repositories/cart-item.repository';
 
 import { withTransaction } from '../config/database';
 import * as cartRepository from '../repositories/cart.repository';
 import * as promotionRepository from '../repositories/promotion.repository';
 import { AppError } from '../utils/app-error';
 import type {
-  CreatePromotionInput,
-  UpdatePromotionInput,
+CreatePromotionInput,
+UpdatePromotionInput,
 } from '../validators/promotion.validator';
 
 const MAX_MONEY_CENTS = 999999999999999n;
@@ -106,7 +107,7 @@ export const validateForCheckout = async (
 const getCartSubtotalCents = async (userId: number): Promise<bigint> => {
   const cart = await cartRepository.findCartByUser(userId);
   if (!cart) throw new AppError(409, 'Giỏ hàng đang trống');
-  const items = await cartRepository.listCartItems(cart.id);
+  const items = await cartItemRepository.listCartItems(cart.id);
   if (items.length === 0) throw new AppError(409, 'Giỏ hàng đang trống');
 
   let subtotalCents = 0n;

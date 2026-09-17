@@ -1,10 +1,9 @@
-import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-
-import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
+import type { PoolConnection,ResultSetHeader,RowDataPacket } from 'mysql2/promise';
+import { executeDynamicProcedure,executeProcedure,pool } from '../config/database';
 import type {
-  AdminOrderQuery,
-  CustomerOrderQuery,
-  OrderStatus,
+AdminOrderQuery,
+CustomerOrderQuery,
+OrderStatus,
 } from '../validators/order.validator';
 
 export interface CheckoutCartItemRecord extends RowDataPacket {
@@ -63,6 +62,9 @@ export interface OrderRecord extends RowDataPacket {
   id: number;
   orderCode: string;
   userId: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
   receiverName: string;
   receiverPhone: string;
   shippingAddress: string;
@@ -87,41 +89,16 @@ export interface OrderRecord extends RowDataPacket {
   updatedAt: Date;
 }
 
-export interface OrderItemRecord extends RowDataPacket {
-  id: number;
-  orderId: number;
-  productId: number | null;
-  variantId: number | null;
-  productName: string;
-  productSku: string;
-  productImage: string | null;
-  variantName: string | null;
-  originalPrice: string | number;
-  price: string | number;
-  quantity: number;
-  subtotal: string | number;
-  createdAt: Date;
-}
-
-export interface OrderStatusHistoryRecord extends RowDataPacket {
-  id: number;
-  fromStatus: OrderStatus | null;
-  toStatus: OrderStatus;
-  changedBy: number | null;
-  changedByName: string | null;
-  note: string | null;
-  createdAt: Date;
-}
-
-interface CartRecord extends RowDataPacket {
+export interface CartRecord extends RowDataPacket {
   id: number;
 }
 
-interface CountRecord extends RowDataPacket {
+export interface CountRecord extends RowDataPacket {
   total: number;
 }
 
-const ORDER_COLUMNS = `o.id, o.order_code AS orderCode, o.user_id AS userId,
+export const ORDER_COLUMNS = `o.id, o.order_code AS orderCode, o.user_id AS userId,
+  u.full_name AS customerName, u.email AS customerEmail, u.phone AS customerPhone,
   o.receiver_name AS receiverName, o.receiver_phone AS receiverPhone,
   o.shipping_address AS shippingAddress, o.shipping_method_id AS shippingMethodId,
   sm.code AS shippingMethodCode, sm.name AS shippingMethodName,
@@ -236,35 +213,6 @@ export const createOrder = async (
   return result.insertId;
 };
 
-export const createOrderItem = async (
-  connection: PoolConnection,
-  data: {
-    orderId: number;
-    productId: number;
-    variantId: number | null;
-    productName: string;
-    productSku: string;
-    productImage: string | null;
-    variantName: string | null;
-    originalPrice: string;
-    price: string;
-    quantity: number;
-  },
-): Promise<void> => {
-  await executeProcedure(connection, 'sp_order_createorderitem_1', [
-      data.orderId,
-      data.productId,
-      data.variantId,
-      data.productName,
-      data.productSku,
-      data.productImage,
-      data.variantName,
-      data.originalPrice,
-      data.price,
-      data.quantity,
-    ]);
-};
-
 export const decreaseProductInventory = async (
   connection: PoolConnection,
   productId: number,
@@ -324,41 +272,6 @@ export const createInventoryTransaction = async (
     ]);
 };
 
-export const createPromotionUsage = async (
-  connection: PoolConnection,
-  promotionId: number,
-  userId: number,
-  orderId: number,
-  discountAmount: string,
-): Promise<void> => {
-  await executeProcedure(connection, 'sp_order_createpromotionusage_1', [promotionId, userId, orderId, discountAmount]);
-  await executeProcedure(connection, 'sp_order_createpromotionusage_2', [promotionId]);
-};
-
-export const releasePromotionUsage = async (
-  connection: PoolConnection,
-  promotionId: number,
-  orderId: number,
-): Promise<void> => {
-  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_order_releasepromotionusage_1', [promotionId, orderId]);
-  if (result.affectedRows > 0) {
-    await executeProcedure(connection, 'sp_order_releasepromotionusage_2', [promotionId]);
-  }
-};
-
-export const createStatusHistory = async (
-  connection: PoolConnection,
-  data: {
-    orderId: number;
-    fromStatus: OrderStatus | null;
-    toStatus: OrderStatus;
-    changedBy: number | null;
-    note: string | null;
-  },
-): Promise<void> => {
-  await executeProcedure(connection, 'sp_order_createstatushistory_1', [data.orderId, data.fromStatus, data.toStatus, data.changedBy, data.note]);
-};
-
 export const clearCartItems = async (
   connection: PoolConnection,
   cartId: number,
@@ -386,7 +299,7 @@ export const createAdminNotifications = async (
   await executeProcedure(connection, 'sp_order_createadminnotifications_1', [data.title, data.message, data.orderId]);
 };
 
-const buildOrderFilters = (query: AdminOrderQuery | CustomerOrderQuery, userId?: number) => {
+export const buildOrderFilters = (query: AdminOrderQuery | CustomerOrderQuery, userId?: number) => {
   const conditions: string[] = [];
   const values: Array<string | number> = [];
   if (userId !== undefined) {
@@ -425,6 +338,7 @@ export const listOrders = async (
   const offset = (query.page - 1) * query.limit;
   const [orders] = await executeDynamicProcedure<OrderRecord[]>(pool, 'sp_dynamic_order_listorders_1', `SELECT ${ORDER_COLUMNS}
      FROM orders o
+     INNER JOIN users u ON u.id = o.user_id
      LEFT JOIN shipping_methods sm ON sm.id = o.shipping_method_id
      WHERE ${where}
      ORDER BY o.created_at DESC, o.id DESC
@@ -441,6 +355,7 @@ export const findOrder = async (
   const values = userId === undefined ? [orderId] : [orderId, userId];
   const [rows] = await executeDynamicProcedure<OrderRecord[]>(pool, 'sp_dynamic_order_findorder_1', `SELECT ${ORDER_COLUMNS}
      FROM orders o
+     INNER JOIN users u ON u.id = o.user_id
      LEFT JOIN shipping_methods sm ON sm.id = o.shipping_method_id
      WHERE o.id = ?${owner} LIMIT 1`, values);
   return rows[0] ?? null;
@@ -455,25 +370,10 @@ export const findOrderForUpdate = async (
   const values = userId === undefined ? [orderId] : [orderId, userId];
   const [rows] = await executeDynamicProcedure<OrderRecord[]>(connection, 'sp_dynamic_order_findorderforupdate_1', `SELECT ${ORDER_COLUMNS}
      FROM orders o
+     INNER JOIN users u ON u.id = o.user_id
      LEFT JOIN shipping_methods sm ON sm.id = o.shipping_method_id
      WHERE o.id = ?${owner} LIMIT 1 FOR UPDATE`, values);
   return rows[0] ?? null;
-};
-
-export const listOrderItems = async (
-  orderId: number,
-  connection?: PoolConnection,
-): Promise<OrderItemRecord[]> => {
-  const executor = connection ?? pool;
-  const [rows] = await executeProcedure<OrderItemRecord[]>(executor, 'sp_order_listorderitems_1', [orderId]);
-  return rows;
-};
-
-export const listStatusHistory = async (
-  orderId: number,
-): Promise<OrderStatusHistoryRecord[]> => {
-  const [rows] = await executeProcedure<OrderStatusHistoryRecord[]>(pool, 'sp_order_liststatushistory_1', [orderId]);
-  return rows;
 };
 
 export const updateOrderStatus = async (

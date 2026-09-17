@@ -1,31 +1,31 @@
-import { randomBytes } from 'node:crypto';
 import type { PoolConnection } from 'mysql2/promise';
-
+import { randomBytes } from 'node:crypto';
 import { withTransaction } from '../config/database';
+import * as orderItemRepository from '../repositories/order-item.repository';
+import * as orderStatusHistoryRepository from '../repositories/order-status-history.repository';
 import * as orderRepository from '../repositories/order.repository';
-import * as paymentService from './payment.service';
-import * as promotionService from './promotion.service';
-import { emitToAdmins, emitToUser } from '../socket';
+import * as promotionUsageRepository from '../repositories/promotion-usage.repository';
+import { emitToAdmins,emitToUser } from '../socket';
 import { AppError } from '../utils/app-error';
 import type {
-  AdminOrderQuery,
-  CancelOrderInput,
-  CheckoutInput,
-  CustomerOrderQuery,
-  OrderStatus,
-  UpdateOrderStatusInput,
+CancelOrderInput,
+CheckoutInput,
+CustomerOrderQuery
 } from '../validators/order.validator';
+import { cancelOrderTransaction,toOrderResponse } from './order.shared';
+import * as promotionService from './promotion.service';
 
-const MAX_MONEY_CENTS = 999999999999999n;
-const MAX_INVENTORY_QUANTITY = 2147483647;
+export const MAX_MONEY_CENTS = 999999999999999n;
 
-interface ReceiverSnapshot {
+export const MAX_INVENTORY_QUANTITY = 2147483647;
+
+export interface ReceiverSnapshot {
   receiverName: string;
   receiverPhone: string;
   shippingAddress: string;
 }
 
-interface CheckoutItemSnapshot {
+export interface CheckoutItemSnapshot {
   productId: number;
   variantId: number | null;
   productName: string;
@@ -40,31 +40,31 @@ interface CheckoutItemSnapshot {
   variantStock: number | null;
 }
 
-const moneyToCents = (value: string | number): bigint => {
+export const moneyToCents = (value: string | number): bigint => {
   const normalized = String(value);
   const [whole, fraction = ''] = normalized.split('.');
   return BigInt(whole) * 100n + BigInt(`${fraction}00`.slice(0, 2));
 };
 
-const centsToMoney = (value: bigint): string =>
+export const centsToMoney = (value: bigint): string =>
   `${value / 100n}.${(value % 100n).toString().padStart(2, '0')}`;
 
-const ensureMoneyFitsDatabase = (value: bigint): void => {
+export const ensureMoneyFitsDatabase = (value: bigint): void => {
   if (value < 0n || value > MAX_MONEY_CENTS) {
     throw new AppError(422, 'Giá trị đơn hàng vượt quá giới hạn cho phép');
   }
 };
 
-const formatCurrency = (cents: bigint): string =>
+export const formatCurrency = (cents: bigint): string =>
   `${Number(cents / 100n).toLocaleString('vi-VN')}đ`;
 
-const generateOrderCode = (): string =>
+export const generateOrderCode = (): string =>
   `DD${Date.now().toString(36).toUpperCase()}${randomBytes(3).toString('hex').toUpperCase()}`;
 
-const isDuplicateEntryError = (error: unknown): boolean =>
+export const isDuplicateEntryError = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && 'code' in error && error.code === 'ER_DUP_ENTRY';
 
-const createOrderWithUniqueCode = async (
+export const createOrderWithUniqueCode = async (
   connection: PoolConnection,
   data: Omit<Parameters<typeof orderRepository.createOrder>[1], 'orderCode'>,
 ): Promise<{ orderId: number; orderCode: string }> => {
@@ -80,7 +80,7 @@ const createOrderWithUniqueCode = async (
   throw new Error('Unique order code could not be generated');
 };
 
-const getReceiverSnapshot = async (
+export const getReceiverSnapshot = async (
   connection: PoolConnection,
   userId: number,
   input: CheckoutInput,
@@ -112,7 +112,7 @@ const getReceiverSnapshot = async (
   return { receiverName, receiverPhone, shippingAddress };
 };
 
-const createCheckoutItemSnapshot = async (
+export const createCheckoutItemSnapshot = async (
   connection: PoolConnection,
   cartItem: orderRepository.CheckoutCartItemRecord,
 ): Promise<CheckoutItemSnapshot> => {
@@ -179,39 +179,7 @@ const createCheckoutItemSnapshot = async (
   };
 };
 
-const toOrderResponse = (order: orderRepository.OrderRecord) => ({
-  id: order.id,
-  orderCode: order.orderCode,
-  userId: order.userId,
-  receiverName: order.receiverName,
-  receiverPhone: order.receiverPhone,
-  shippingAddress: order.shippingAddress,
-  shippingMethod: order.shippingMethodId === null
-    ? null
-    : {
-        id: order.shippingMethodId,
-        code: order.shippingMethodCode,
-        name: order.shippingMethodName,
-      },
-  promotionId: order.promotionId,
-  promotionCode: order.promotionCode,
-  subtotal: Number(order.subtotal),
-  shippingFee: Number(order.shippingFee),
-  discountAmount: Number(order.discountAmount),
-  totalAmount: Number(order.totalAmount),
-  paymentMethod: order.paymentMethod,
-  paymentStatus: order.paymentStatus,
-  status: order.status,
-  note: order.note,
-  cancelReason: order.cancelReason,
-  confirmedAt: order.confirmedAt,
-  deliveredAt: order.deliveredAt,
-  cancelledAt: order.cancelledAt,
-  createdAt: order.createdAt,
-  updatedAt: order.updatedAt,
-});
-
-const toOrderItemResponse = (item: orderRepository.OrderItemRecord) => ({
+export const toOrderItemResponse = (item: orderItemRepository.OrderItemRecord) => ({
   id: item.id,
   productId: item.productId,
   variantId: item.variantId,
@@ -230,8 +198,8 @@ export const getOrderDetail = async (orderId: number, userId?: number) => {
   const order = await orderRepository.findOrder(orderId, userId);
   if (!order) throw new AppError(404, 'Không tìm thấy đơn hàng');
   const [items, statusHistory] = await Promise.all([
-    orderRepository.listOrderItems(orderId),
-    orderRepository.listStatusHistory(orderId),
+    orderItemRepository.listOrderItems(orderId),
+    orderStatusHistoryRepository.listStatusHistory(orderId),
   ]);
   return {
     order: toOrderResponse(order),
@@ -250,19 +218,6 @@ export const getOrderDetail = async (orderId: number, userId?: number) => {
 
 export const listCustomerOrders = async (userId: number, query: CustomerOrderQuery) => {
   const result = await orderRepository.listOrders(query, userId);
-  return {
-    orders: result.orders.map(toOrderResponse),
-    pagination: {
-      page: query.page,
-      limit: query.limit,
-      total: result.total,
-      totalPages: Math.ceil(result.total / query.limit),
-    },
-  };
-};
-
-export const listAdminOrders = async (query: AdminOrderQuery) => {
-  const result = await orderRepository.listOrders(query);
   return {
     orders: result.orders.map(toOrderResponse),
     pagination: {
@@ -329,7 +284,7 @@ export const checkout = async (userId: number, input: CheckoutInput) => {
     });
 
     for (const item of items) {
-      await orderRepository.createOrderItem(connection, {
+      await orderItemRepository.createOrderItem(connection, {
         orderId: orderData.orderId,
         productId: item.productId,
         variantId: item.variantId,
@@ -377,7 +332,7 @@ export const checkout = async (userId: number, input: CheckoutInput) => {
     }
 
     if (promotion) {
-      await orderRepository.createPromotionUsage(
+      await promotionUsageRepository.createPromotionUsage(
         connection,
         promotion.id,
         userId,
@@ -385,7 +340,7 @@ export const checkout = async (userId: number, input: CheckoutInput) => {
         centsToMoney(discountCents),
       );
     }
-    await orderRepository.createStatusHistory(connection, {
+    await orderStatusHistoryRepository.createStatusHistory(connection, {
       orderId: orderData.orderId,
       fromStatus: null,
       toStatus: 'PENDING',
@@ -433,92 +388,6 @@ export const checkout = async (userId: number, input: CheckoutInput) => {
   return getOrderDetail(created.orderId, userId);
 };
 
-const restoreOrderInventory = async (
-  connection: PoolConnection,
-  order: orderRepository.OrderRecord,
-  actorId: number,
-): Promise<void> => {
-  const items = await orderRepository.listOrderItems(order.id, connection);
-  for (const item of items) {
-    if (item.productId === null) {
-      throw new AppError(409, 'Không thể hoàn tồn kho vì sản phẩm của đơn hàng không còn tồn tại');
-    }
-    const product = await orderRepository.findProductForUpdate(connection, item.productId);
-    if (!product) {
-      throw new AppError(409, 'Không thể hoàn tồn kho vì sản phẩm của đơn hàng không còn tồn tại');
-    }
-
-    let stockAfter: number;
-    if (item.variantName !== null) {
-      if (item.variantId === null) {
-        throw new AppError(409, 'Không thể hoàn tồn kho vì phiên bản sản phẩm không còn tồn tại');
-      }
-      const variant = await orderRepository.findVariantForUpdate(connection, item.variantId);
-      if (!variant || variant.productId !== item.productId) {
-        throw new AppError(409, 'Không thể hoàn tồn kho vì phiên bản sản phẩm không còn tồn tại');
-      }
-      await orderRepository.restoreVariantInventory(connection, item.variantId, item.quantity);
-      await orderRepository.restoreProductInventory(connection, item.productId, item.quantity);
-      stockAfter = variant.stock + item.quantity;
-    } else {
-      await orderRepository.restoreProductInventory(connection, item.productId, item.quantity);
-      stockAfter = product.stock + item.quantity;
-    }
-    await orderRepository.createInventoryTransaction(connection, {
-      productId: item.productId,
-      variantId: item.variantId,
-      type: 'CANCEL_ORDER',
-      quantity: item.quantity,
-      stockAfter,
-      orderId: order.id,
-      note: `Hoàn kho do hủy đơn ${order.orderCode}`,
-      createdBy: actorId,
-    });
-  }
-};
-
-const cancelOrderTransaction = async (
-  orderId: number,
-  actorId: number,
-  reason: string,
-  ownerId?: number,
-) => withTransaction(async (connection) => {
-  const order = await orderRepository.findOrderForUpdate(connection, orderId, ownerId);
-  if (!order) throw new AppError(404, 'Không tìm thấy đơn hàng');
-  if (order.status !== 'PENDING' && order.status !== 'CONFIRMED') {
-    throw new AppError(409, 'Đơn hàng không thể hủy ở trạng thái hiện tại');
-  }
-  if (order.paymentStatus === 'PAID') {
-    throw new AppError(409, 'Đơn hàng đã thanh toán cần được xử lý hoàn tiền trước khi hủy');
-  }
-
-  await restoreOrderInventory(connection, order, actorId);
-  await orderRepository.cancelOrder(connection, order.id, reason);
-  await orderRepository.createStatusHistory(connection, {
-    orderId: order.id,
-    fromStatus: order.status,
-    toStatus: 'CANCELLED',
-    changedBy: actorId,
-    note: reason,
-  });
-  if (order.promotionId !== null) {
-    await orderRepository.lockPromotion(connection, order.promotionId);
-    await orderRepository.releasePromotionUsage(connection, order.promotionId, order.id);
-  }
-  await orderRepository.createNotification(connection, {
-    userId: order.userId,
-    title: 'Đơn hàng đã hủy',
-    message: `Đơn hàng ${order.orderCode} đã được hủy.`,
-    orderId: order.id,
-  });
-  await orderRepository.createAdminNotifications(connection, {
-    title: `Đơn hàng ${order.orderCode} đã bị hủy`,
-    message: `Đơn hàng ${order.orderCode} đã bị hủy.`,
-    orderId: order.id,
-  });
-  return { orderId: order.id, orderCode: order.orderCode, userId: order.userId };
-});
-
 export const cancelCustomerOrder = async (
   userId: number,
   orderId: number,
@@ -539,107 +408,4 @@ export const cancelCustomerOrder = async (
     type: 'ORDER', referenceType: 'order', referenceId: cancelled.orderId,
   });
   return getOrderDetail(orderId, userId);
-};
-
-const validTransitions: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['PROCESSING', 'CANCELLED'],
-  PROCESSING: ['SHIPPING', 'CANCELLED'],
-  SHIPPING: ['DELIVERED'],
-  DELIVERED: [],
-  CANCELLED: [],
-};
-
-export const updateOrderStatus = async (
-  adminId: number,
-  orderId: number,
-  input: UpdateOrderStatusInput,
-) => {
-  if (input.status === 'CANCELLED') {
-    const cancelled = await cancelOrderTransaction(
-      orderId,
-      adminId,
-      input.note || 'Admin hủy đơn hàng',
-    );
-    const event = { ...cancelled, status: 'CANCELLED' };
-    emitToUser(cancelled.userId, 'order:updated', event);
-    emitToUser(cancelled.userId, 'notification:new', {
-      title: 'Đơn hàng đã hủy',
-      message: `Đơn hàng ${cancelled.orderCode} đã được hủy.`,
-      type: 'ORDER', referenceType: 'order', referenceId: cancelled.orderId,
-    });
-    emitToAdmins('order:cancelled', event);
-    emitToAdmins('notification:new', {
-      title: `Đơn hàng ${cancelled.orderCode} đã bị hủy`,
-      message: `Đơn hàng ${cancelled.orderCode} đã bị hủy.`,
-      type: 'ORDER', referenceType: 'order', referenceId: cancelled.orderId,
-    });
-    return getOrderDetail(orderId);
-  }
-
-  const updated = await withTransaction(async (connection) => {
-    const order = await orderRepository.findOrderForUpdate(connection, orderId);
-    if (!order) throw new AppError(404, 'Không tìm thấy đơn hàng');
-    if (!validTransitions[order.status].includes(input.status)) {
-      throw new AppError(409, `Không thể chuyển trạng thái từ ${order.status} sang ${input.status}`);
-    }
-    await orderRepository.updateOrderStatus(connection, order.id, input.status);
-    if (input.status === 'DELIVERED') {
-      await paymentService.markCodPaidOnDelivery(connection, {
-        id: order.id,
-        orderCode: order.orderCode,
-        userId: order.userId,
-        totalAmount: order.totalAmount,
-        paymentMethod: order.paymentMethod,
-        paymentStatus: order.paymentStatus,
-      });
-    }
-    await orderRepository.createStatusHistory(connection, {
-      orderId: order.id,
-      fromStatus: order.status,
-      toStatus: input.status,
-      changedBy: adminId,
-      note: input.note ?? null,
-    });
-    await orderRepository.createNotification(connection, {
-      userId: order.userId,
-      title: 'Trạng thái đơn hàng đã thay đổi',
-      message: `Đơn hàng ${order.orderCode} đã chuyển sang trạng thái ${input.status}.`,
-      orderId: order.id,
-    });
-    return {
-      orderId: order.id,
-      orderCode: order.orderCode,
-      userId: order.userId,
-      paymentUpdated: input.status === 'DELIVERED' && order.paymentMethod === 'COD',
-    };
-  });
-
-  const event = {
-    orderId: updated.orderId,
-    orderCode: updated.orderCode,
-    userId: updated.userId,
-    status: input.status,
-  };
-  emitToUser(updated.userId, 'order:updated', event);
-  emitToUser(updated.userId, 'notification:new', {
-    title: 'Trạng thái đơn hàng đã thay đổi',
-    message: `Đơn hàng ${updated.orderCode} đã chuyển sang trạng thái ${input.status}.`,
-    type: 'ORDER', referenceType: 'order', referenceId: updated.orderId,
-  });
-  if (updated.paymentUpdated) {
-    emitToUser(updated.userId, 'payment:updated', {
-      orderId: updated.orderId,
-      orderCode: updated.orderCode,
-      method: 'COD',
-      status: 'PAID',
-    });
-    emitToUser(updated.userId, 'notification:new', {
-      title: 'Thanh toán thành công',
-      message: `Đơn hàng ${updated.orderCode} đã được thanh toán bằng COD.`,
-      type: 'PAYMENT', referenceType: 'order', referenceId: updated.orderId,
-    });
-  }
-  emitToAdmins('order:updated', event);
-  return getOrderDetail(orderId);
 };

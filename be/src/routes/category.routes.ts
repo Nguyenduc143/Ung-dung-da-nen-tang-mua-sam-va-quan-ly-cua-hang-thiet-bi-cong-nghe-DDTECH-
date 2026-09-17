@@ -1,0 +1,16 @@
+import { Router } from 'express';
+import * as controller from '../controllers/category.controller';
+import { requireAdmin } from '../middleware/admin.middleware';
+import { authenticate } from '../middleware/auth.middleware';
+import { validateBody } from '../middleware/validate.middleware';
+import * as schema from '../validators/catalog.validator';
+export const categoryRouter = Router();
+categoryRouter.get('/categories', controller.list);
+categoryRouter.get('/categories/:slug', controller.detail);
+const admin = Router();
+admin.use(authenticate, requireAdmin);
+admin.get('/categories', controller.adminList);
+admin.post('/categories', validateBody(schema.categorySchema), controller.create);
+admin.patch('/categories/:id', validateBody(schema.categoryPatch), controller.update);
+admin.delete('/categories/:id', controller.remove);
+categoryRouter.use('/admin', admin);

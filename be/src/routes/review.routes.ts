@@ -1,18 +1,13 @@
 import { Router } from 'express';
-
 import * as reviewController from '../controllers/review.controller';
-import { requireAdmin } from '../middleware/admin.middleware';
 import { authenticate } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validate.middleware';
 import {
-  createReviewSchema,
-  replyReviewSchema,
-  updateReviewSchema,
-  updateReviewStatusSchema,
+createReviewSchema,
+updateReviewSchema
 } from '../validators/review.validator';
-
+import { adminReviewRouter } from './admin-review.routes';
 export const reviewRouter = Router();
-
 reviewRouter.get('/products/:productId/reviews', reviewController.productReviews);
 reviewRouter.post(
   '/products/:productId/reviews',
@@ -28,17 +23,8 @@ reviewRouter.patch(
 );
 reviewRouter.delete('/reviews/:id', authenticate, reviewController.remove);
 
-export const adminReviewRouter = Router();
 
-adminReviewRouter.use(authenticate, requireAdmin);
-adminReviewRouter.get('/', reviewController.adminList);
-adminReviewRouter.patch(
-  '/:id/status',
-  validateBody(updateReviewStatusSchema),
-  reviewController.updateStatus,
-);
-adminReviewRouter.post(
-  '/:id/reply',
-  validateBody(replyReviewSchema),
-  reviewController.reply,
-);
+
+
+
+export { adminReviewRouter };

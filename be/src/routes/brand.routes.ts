@@ -1,0 +1,16 @@
+import { Router } from 'express';
+import * as controller from '../controllers/brand.controller';
+import { requireAdmin } from '../middleware/admin.middleware';
+import { authenticate } from '../middleware/auth.middleware';
+import { validateBody } from '../middleware/validate.middleware';
+import * as schema from '../validators/catalog.validator';
+export const brandRouter = Router();
+brandRouter.get('/brands', controller.list);
+brandRouter.get('/brands/:slug', controller.detail);
+const admin = Router();
+admin.use(authenticate, requireAdmin);
+admin.get('/brands', controller.adminList);
+admin.post('/brands', validateBody(schema.brandSchema), controller.create);
+admin.patch('/brands/:id', validateBody(schema.brandPatch), controller.update);
+admin.delete('/brands/:id', controller.remove);
+brandRouter.use('/admin', admin);

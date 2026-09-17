@@ -5,14 +5,11 @@ import { z } from 'zod';
 import * as productService from '../services/product.service';
 import { AppError } from '../utils/app-error';
 import {
-  productIdSchema,
-  productQuerySchema,
-  productSlugSchema,
-  type CreateProductImageInput,
-  type CreateProductInput,
-  type CreateVariantInput,
-  type UpdateProductInput,
-  type UpdateVariantInput,
+productIdSchema,
+productQuerySchema,
+productSlugSchema,
+type CreateProductInput,
+type UpdateProductInput
 } from '../validators/product.validator';
 
 const parse = <T>(schema: ZodType<T>, value: unknown): T => {
@@ -28,8 +25,21 @@ export const list: RequestHandler = async (req, res) => {
   res.status(200).json({ success: true, message: 'Lấy danh sách sản phẩm thành công', data });
 };
 
+export const adminList: RequestHandler = async (req, res) => {
+  const data = await productService.listProducts(parse(productQuerySchema, req.query), false);
+  res.status(200).json({ success: true, message: 'Lấy danh sách sản phẩm thành công', data });
+};
+
 export const detailById: RequestHandler = async (req, res) => {
   const data = await productService.getProductDetail(parse(productIdSchema, req.params.id));
+  res.status(200).json({ success: true, message: 'Lấy thông tin sản phẩm thành công', data });
+};
+
+export const adminDetailById: RequestHandler = async (req, res) => {
+  const data = await productService.getProductDetail(
+    parse(productIdSchema, req.params.id),
+    false,
+  );
   res.status(200).json({ success: true, message: 'Lấy thông tin sản phẩm thành công', data });
 };
 
@@ -57,46 +67,4 @@ export const update: RequestHandler = async (req, res) => {
 export const remove: RequestHandler = async (req, res) => {
   await productService.deleteProduct(parse(productIdSchema, req.params.id));
   res.status(200).json({ success: true, message: 'Xóa sản phẩm thành công', data: null });
-};
-
-export const createVariant: RequestHandler = async (req, res) => {
-  const variant = await productService.createVariant(
-    req.user!.id,
-    parse(productIdSchema, req.params.id),
-    req.body as CreateVariantInput,
-  );
-  res.status(201).json({ success: true, message: 'Tạo phiên bản sản phẩm thành công', data: { variant } });
-};
-
-export const updateVariant: RequestHandler = async (req, res) => {
-  const variant = await productService.updateVariant(
-    parse(productIdSchema, req.params.id),
-    req.body as UpdateVariantInput,
-  );
-  res.status(200).json({ success: true, message: 'Cập nhật phiên bản thành công', data: { variant } });
-};
-
-export const removeVariant: RequestHandler = async (req, res) => {
-  await productService.deleteVariant(parse(productIdSchema, req.params.id));
-  res.status(200).json({ success: true, message: 'Xóa phiên bản thành công', data: null });
-};
-
-export const createImage: RequestHandler = async (req, res) => {
-  const image = await productService.createProductImage(
-    parse(productIdSchema, req.params.id),
-    req.body as CreateProductImageInput,
-  );
-  res.status(201).json({ success: true, message: 'Thêm ảnh sản phẩm thành công', data: { image } });
-};
-
-export const removeImage: RequestHandler = async (req, res) => {
-  await productService.deleteProductImage(parse(productIdSchema, req.params.id));
-  res.status(200).json({ success: true, message: 'Xóa ảnh sản phẩm thành công', data: null });
-};
-
-export const setPrimaryImage: RequestHandler = async (req, res) => {
-  const image = await productService.setPrimaryProductImage(
-    parse(productIdSchema, req.params.id),
-  );
-  res.status(200).json({ success: true, message: 'Đặt ảnh chính thành công', data: { image } });
 };

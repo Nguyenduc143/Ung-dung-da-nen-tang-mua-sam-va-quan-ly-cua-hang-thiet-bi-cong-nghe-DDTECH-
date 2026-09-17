@@ -153,6 +153,7 @@ export const productQuerySchema = z
     search: z.string().trim().max(255).optional(),
     category: z.string().trim().min(1).max(280).optional(),
     brand: z.string().trim().min(1).max(280).optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
     minPrice: z.coerce.number().finite().min(0).max(MAX_MONEY).optional(),
     maxPrice: z.coerce.number().finite().min(0).max(MAX_MONEY).optional(),
     sort: z

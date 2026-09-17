@@ -1,10 +1,11 @@
 import { Router } from 'express';
+import { validateParams } from '../middleware/validate.middleware';
 
-import * as userController from '../controllers/user.controller';
+import * as userController from '../controllers/admin-user.controller';
 import { requireAdmin } from '../middleware/admin.middleware';
 import { authenticate } from '../middleware/auth.middleware';
-import { validateBody, validateParams } from '../middleware/validate.middleware';
-import { updateUserStatusSchema, userIdParamsSchema } from '../validators/user.validator';
+import { validateBody } from '../middleware/validate.middleware';
+import { updateUserStatusSchema,userIdParamsSchema } from '../validators/user.validator';
 
 export const adminUserRouter = Router();
 

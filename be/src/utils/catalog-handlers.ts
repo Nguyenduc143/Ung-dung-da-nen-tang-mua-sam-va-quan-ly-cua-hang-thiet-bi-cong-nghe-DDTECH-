@@ -1,9 +1,9 @@
 import type { RequestHandler } from 'express';
-import * as service from '../services/catalog.service';
-import type { CatalogKind } from '../repositories/catalog.repository';
-import { idSchema, slugSchema } from '../validators/catalog.validator';
-import { AppError } from '../utils/app-error';
 import type { ZodType } from 'zod';
+import type { CatalogKind } from '../repositories/catalog.repository';
+import * as service from '../services/catalog.service';
+import { AppError } from '../utils/app-error';
+import { idSchema,slugSchema } from '../validators/catalog.validator';
 
 function parse<T>(schema: ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
