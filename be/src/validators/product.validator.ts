@@ -142,6 +142,37 @@ export const createProductImageSchema = z
   })
   .strict();
 
+const emptyMultipartValueToUndefined = (value: unknown) => (
+  value === '' || value === null ? undefined : value
+);
+
+const multipartBoolean = z.preprocess((value) => {
+  if (value === 'true' || value === '1') return true;
+  if (value === 'false' || value === '0') return false;
+  return value;
+}, z.boolean());
+
+export const uploadProductImageSchema = z
+  .object({
+    variantId: z.preprocess(
+      emptyMultipartValueToUndefined,
+      z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+    ),
+    altText: z.preprocess(
+      emptyMultipartValueToUndefined,
+      z.string().trim().max(255).optional(),
+    ),
+    isPrimary: z.preprocess(
+      emptyMultipartValueToUndefined,
+      multipartBoolean.optional(),
+    ),
+    sortOrder: z.preprocess(
+      emptyMultipartValueToUndefined,
+      z.coerce.number().int().min(-MAX_SORT_ORDER - 1).max(MAX_SORT_ORDER).optional(),
+    ),
+  })
+  .strict();
+
 const queryBoolean = z.preprocess((value) => {
   if (value === 'true' || value === '1') return true;
   if (value === 'false' || value === '0') return false;
@@ -153,6 +184,7 @@ export const productQuerySchema = z
     search: z.string().trim().max(255).optional(),
     category: z.string().trim().min(1).max(280).optional(),
     brand: z.string().trim().min(1).max(280).optional(),
+    status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
     minPrice: z.coerce.number().finite().min(0).max(MAX_MONEY).optional(),
     maxPrice: z.coerce.number().finite().min(0).max(MAX_MONEY).optional(),
     sort: z
@@ -174,4 +206,5 @@ export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type CreateVariantInput = z.infer<typeof createVariantSchema>;
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;
 export type CreateProductImageInput = z.infer<typeof createProductImageSchema>;
+export type UploadProductImageInput = z.infer<typeof uploadProductImageSchema>;
 export type ProductQuery = z.infer<typeof productQuerySchema>;

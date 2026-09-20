@@ -1,0 +1,799 @@
+🚀 Starting collection: DDTECH - Full API MCP tests
+🎯 Starting collection run...
+
+
+📝 Request: Auth / Register
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Login
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Me
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Refresh
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Reuse old refresh rejected
+  📊 Test Results:
+    ✓ HTTP 401
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Logout
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Revoked refresh rejected
+  📊 Test Results:
+    ✓ HTTP 401
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Login again
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin / Login
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin / Customer denied
+  📊 Test Results:
+    ✓ HTTP 403
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin / User list
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin / User detail
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: User / Profile
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: User / Update profile
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category / Create
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category / Detail
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category / Admin list
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category / Duplicate slug
+  📊 Test Results:
+    ✓ HTTP 409
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category / Self parent rejected
+  📊 Test Results:
+    ✓ HTTP 409
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category / Update
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Attribute / Create
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Attribute / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Attribute / Update
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Brand / Create
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Brand / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Brand / Detail
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Brand / Admin list
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Brand / Update
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Product / Create
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Product / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Product / Detail
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Product / Slug
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Product / Update
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Product / Reject direct stock change
+  📊 Test Results:
+    ✓ HTTP 422
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Image / Create
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Image / Primary
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Favorite / Add
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Favorite / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Favorite / Remove
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart / Unauthorized
+  📊 Test Results:
+    ✓ HTTP 401
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart / Add
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart / Update
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart / Reject zero
+  📊 Test Results:
+    ✓ HTTP 422
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Promotion / Create
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Promotion / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Promotion / Update
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Promotion / Validate
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / Checkout
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ✓ server total
+    ────────────────────────────────────────
+    3 tests | ✓ 3 passed | ✗ 0 failed
+
+
+📝 Request: Order / My list
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / Detail
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / Admin list
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / Admin detail
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / CONFIRMED
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / PROCESSING
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / SHIPPING
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / DELIVERED
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Payment / COD
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ✓ paid on delivery
+    ────────────────────────────────────────
+    3 tests | ✓ 3 passed | ✗ 0 failed
+
+
+📝 Request: Review / Create
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Review / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Review / Update
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Review / Admin list
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Review / Approve
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Review / Reply
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Inventory / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Inventory / Import
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Inventory / Adjust
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Inventory / Reject negative stock
+  📊 Test Results:
+    ✓ HTTP 409
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Inventory / Transactions
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Inventory / Low stock
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Inventory / Stock verified
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ✓ stock after sale and adjustments
+    ────────────────────────────────────────
+    3 tests | ✓ 3 passed | ✗ 0 failed
+
+
+📝 Request: Dashboard / summary
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Dashboard / revenue
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Dashboard / orders-by-status
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Dashboard / top-products
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Dashboard / recent-orders
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Dashboard / low-stock
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Notifications / List
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Notifications / Count
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Cart / Add for cancel
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / Second checkout
+  📊 Test Results:
+    ✓ HTTP 201
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Order / Cancel
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Review / Delete
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Image / Delete
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Attribute / Delete
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Promotion / Delete
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Product / Soft delete
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Product / Deleted hidden
+  📊 Test Results:
+    ✓ HTTP 404
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Brand / Soft delete
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Category / Soft delete
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin / Lock user
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin / Locked access denied
+  📊 Test Results:
+    ✓ HTTP 401
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin / Unlock user
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Logout all
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Auth / Refresh after logout all
+  📊 Test Results:
+    ✓ HTTP 401
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+📝 Request: Admin / Logout
+  📊 Test Results:
+    ✓ HTTP 200
+    ✓ success flag
+    ────────────────────────────────────────
+    2 tests | ✓ 2 passed | ✗ 0 failed
+
+
+=== ✅ Run completed! ===
+
+📊 Overall Test Statistics:
+  Total tests: 197
+  Passed: 197 ✅
+  Failed: 0 ❌
+  Success rate: 100.0%
+
+📈 Request Summary:
+  Total requests: 97
+  Failed requests: 0
+  Total assertions: 197
+  Failed assertions: 0
+  Total iterations: 1
+  Failed iterations: 0
+⏱️  Duration: 109.12s

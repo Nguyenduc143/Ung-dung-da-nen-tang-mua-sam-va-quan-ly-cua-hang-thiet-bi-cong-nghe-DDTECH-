@@ -1,6 +1,6 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
-import { pool } from '../config/database';
+import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
 import type { NotificationQuery } from '../validators/notification.validator';
 
 export interface NotificationRecord extends RowDataPacket {
@@ -34,25 +34,16 @@ export const listNotifications = async (userId: number, query: NotificationQuery
   }
   const where = conditions.join(' AND ');
   const offset = (query.page - 1) * query.limit;
-  const [notifications] = await pool.execute<NotificationRecord[]>(
-    `SELECT ${NOTIFICATION_COLUMNS} FROM notifications
+  const [notifications] = await executeDynamicProcedure<NotificationRecord[]>(pool, 'sp_dynamic_notification_listnotifications_1', `SELECT ${NOTIFICATION_COLUMNS} FROM notifications
      WHERE ${where}
      ORDER BY created_at DESC, id DESC
-     LIMIT ? OFFSET ?`,
-    [...values, query.limit, offset],
-  );
-  const [countRows] = await pool.execute<CountRecord[]>(
-    `SELECT COUNT(*) AS total FROM notifications WHERE ${where}`,
-    values,
-  );
+     LIMIT ? OFFSET ?`, [...values, query.limit, offset]);
+  const [countRows] = await executeDynamicProcedure<CountRecord[]>(pool, 'sp_dynamic_notification_listnotifications_2', `SELECT COUNT(*) AS total FROM notifications WHERE ${where}`, values);
   return { notifications, total: countRows[0]?.total ?? 0 };
 };
 
 export const countUnread = async (userId: number): Promise<number> => {
-  const [rows] = await pool.execute<CountRecord[]>(
-    'SELECT COUNT(*) AS total FROM notifications WHERE user_id = ? AND is_read = 0',
-    [userId],
-  );
+  const [rows] = await executeProcedure<CountRecord[]>(pool, 'sp_notification_countunread_1', [userId]);
   return rows[0]?.total ?? 0;
 };
 
@@ -62,11 +53,8 @@ export const findOwnedNotification = async (
   connection?: PoolConnection,
 ): Promise<NotificationRecord | null> => {
   const executor = connection ?? pool;
-  const [rows] = await executor.execute<NotificationRecord[]>(
-    `SELECT ${NOTIFICATION_COLUMNS} FROM notifications
-     WHERE id = ? AND user_id = ? LIMIT 1${connection ? ' FOR UPDATE' : ''}`,
-    [notificationId, userId],
-  );
+  const [rows] = await executeDynamicProcedure<NotificationRecord[]>(executor, 'sp_dynamic_notification_findownednotification_1', `SELECT ${NOTIFICATION_COLUMNS} FROM notifications
+     WHERE id = ? AND user_id = ? LIMIT 1${connection ? ' FOR UPDATE' : ''}`, [notificationId, userId]);
   return rows[0] ?? null;
 };
 
@@ -75,19 +63,10 @@ export const markRead = async (
   userId: number,
   connection: PoolConnection,
 ): Promise<void> => {
-  await connection.execute(
-    `UPDATE notifications
-     SET is_read = 1, read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
-     WHERE id = ? AND user_id = ?`,
-    [notificationId, userId],
-  );
+  await executeProcedure(connection, 'sp_notification_markread_1', [notificationId, userId]);
 };
 
 export const markAllRead = async (userId: number): Promise<number> => {
-  const [result] = await pool.execute<ResultSetHeader>(
-    `UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP
-     WHERE user_id = ? AND is_read = 0`,
-    [userId],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(pool, 'sp_notification_markallread_1', [userId]);
   return result.affectedRows;
 };

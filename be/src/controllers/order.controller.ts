@@ -5,12 +5,10 @@ import { z } from 'zod';
 import * as orderService from '../services/order.service';
 import { AppError } from '../utils/app-error';
 import {
-  adminOrderQuerySchema,
-  customerOrderQuerySchema,
-  orderIdSchema,
-  type CancelOrderInput,
-  type CheckoutInput,
-  type UpdateOrderStatusInput,
+customerOrderQuerySchema,
+orderIdSchema,
+type CancelOrderInput,
+type CheckoutInput
 } from '../validators/order.validator';
 
 const requireUser = (user: Express.Request['user']) => {
@@ -54,23 +52,4 @@ export const cancel: RequestHandler = async (req, res) => {
     req.body as CancelOrderInput,
   );
   res.status(200).json({ success: true, message: 'Hủy đơn hàng thành công', data });
-};
-
-export const adminList: RequestHandler = async (req, res) => {
-  const data = await orderService.listAdminOrders(parse(adminOrderQuerySchema, req.query));
-  res.status(200).json({ success: true, message: 'Lấy danh sách đơn hàng thành công', data });
-};
-
-export const adminDetail: RequestHandler = async (req, res) => {
-  const data = await orderService.getOrderDetail(parse(orderIdSchema, req.params.id));
-  res.status(200).json({ success: true, message: 'Lấy thông tin đơn hàng thành công', data });
-};
-
-export const updateStatus: RequestHandler = async (req, res) => {
-  const data = await orderService.updateOrderStatus(
-    requireUser(req.user).id,
-    parse(orderIdSchema, req.params.id),
-    req.body as UpdateOrderStatusInput,
-  );
-  res.status(200).json({ success: true, message: 'Cập nhật trạng thái đơn hàng thành công', data });
 };

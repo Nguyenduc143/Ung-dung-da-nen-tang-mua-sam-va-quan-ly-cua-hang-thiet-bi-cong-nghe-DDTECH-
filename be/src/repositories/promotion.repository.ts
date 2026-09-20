@@ -1,7 +1,7 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import type { ExecuteValues } from 'mysql2';
 
-import { pool } from '../config/database';
+import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
 import type {
   CreatePromotionInput,
   UpdatePromotionInput,
@@ -55,9 +55,7 @@ const fieldMap = {
 } as const;
 
 export const listPromotions = async (): Promise<PromotionRecord[]> => {
-  const [rows] = await pool.execute<PromotionRecord[]>(
-    `SELECT ${PROMOTION_COLUMNS} FROM promotions ORDER BY created_at DESC, id DESC`,
-  );
+  const [rows] = await executeProcedure<PromotionRecord[]>(pool, 'sp_promotion_listpromotions_1', []);
   return rows;
 };
 
@@ -66,11 +64,8 @@ export const findById = async (
   executor: Executor = pool,
   forUpdate = false,
 ): Promise<PromotionRecord | null> => {
-  const [rows] = await executor.execute<PromotionRecord[]>(
-    `SELECT ${PROMOTION_COLUMNS} FROM promotions
-     WHERE id = ? LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`,
-    [promotionId],
-  );
+  const [rows] = await executeDynamicProcedure<PromotionRecord[]>(executor, 'sp_dynamic_promotion_findbyid_1', `SELECT ${PROMOTION_COLUMNS} FROM promotions
+     WHERE id = ? LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`, [promotionId]);
   return rows[0] ?? null;
 };
 
@@ -79,11 +74,8 @@ export const findByCode = async (
   executor: Executor = pool,
   forUpdate = false,
 ): Promise<PromotionRecord | null> => {
-  const [rows] = await executor.execute<PromotionRecord[]>(
-    `SELECT ${PROMOTION_COLUMNS} FROM promotions
-     WHERE code = ? LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`,
-    [code],
-  );
+  const [rows] = await executeDynamicProcedure<PromotionRecord[]>(executor, 'sp_dynamic_promotion_findbycode_1', `SELECT ${PROMOTION_COLUMNS} FROM promotions
+     WHERE code = ? LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`, [code]);
   return rows[0] ?? null;
 };
 
@@ -92,11 +84,7 @@ export const countUserUsages = async (
   userId: number,
   executor: Executor = pool,
 ): Promise<number> => {
-  const [rows] = await executor.execute<CountRecord[]>(
-    `SELECT COUNT(*) AS total FROM promotion_usages
-     WHERE promotion_id = ? AND user_id = ?`,
-    [promotionId, userId],
-  );
+  const [rows] = await executeProcedure<CountRecord[]>(executor, 'sp_promotion_countuserusages_1', [promotionId, userId]);
   return rows[0]?.total ?? 0;
 };
 
@@ -110,18 +98,12 @@ export const savePromotion = async (
   ) as Array<[keyof typeof fieldMap, unknown]>;
   const values = entries.map(([, value]) => value) as ExecuteValues[];
   if (promotionId === undefined) {
-    const [result] = await connection.execute<ResultSetHeader>(
-      `INSERT INTO promotions (${entries.map(([key]) => fieldMap[key]).join(', ')})
-       VALUES (${entries.map(() => '?').join(', ')})`,
-      values,
-    );
+    const [result] = await executeDynamicProcedure<ResultSetHeader>(connection, 'sp_dynamic_promotion_savepromotion_1', `INSERT INTO promotions (${entries.map(([key]) => fieldMap[key]).join(', ')})
+       VALUES (${entries.map(() => '?').join(', ')})`, values);
     return result.insertId;
   }
-  await connection.execute(
-    `UPDATE promotions SET ${entries.map(([key]) => `${fieldMap[key]} = ?`).join(', ')}
-     WHERE id = ?`,
-    [...values, promotionId],
-  );
+  await executeDynamicProcedure(connection, 'sp_dynamic_promotion_savepromotion_2', `UPDATE promotions SET ${entries.map(([key]) => `${fieldMap[key]} = ?`).join(', ')}
+     WHERE id = ?`, [...values, promotionId]);
   return promotionId;
 };
 
@@ -129,8 +111,5 @@ export const deactivatePromotion = async (
   promotionId: number,
   connection: PoolConnection,
 ): Promise<void> => {
-  await connection.execute(
-    "UPDATE promotions SET status = 'INACTIVE' WHERE id = ?",
-    [promotionId],
-  );
+  await executeProcedure(connection, 'sp_promotion_deactivatepromotion_1', [promotionId]);
 };

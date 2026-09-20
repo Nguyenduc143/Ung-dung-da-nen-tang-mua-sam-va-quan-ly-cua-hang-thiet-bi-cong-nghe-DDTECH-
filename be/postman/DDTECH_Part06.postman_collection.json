@@ -1,0 +1,578 @@
+{
+  "info": {
+    "_postman_id": "70f67cc7-0585-49bb-b63d-06dd7ec02026",
+    "name": "DDTECH Backend - Part 06 Products",
+    "description": "Collection kiểm thử Products, Variants và Product Images. Chạy các request theo thứ tự từ folder 00 đến 04.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "adminEmail", "value": "", "type": "string" },
+    { "key": "adminPassword", "value": "", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "categoryId", "value": "", "type": "string" },
+    { "key": "brandId", "value": "", "type": "string" },
+    { "key": "testSuffix", "value": "", "type": "string" },
+    { "key": "productId", "value": "", "type": "string" },
+    { "key": "productSlug", "value": "", "type": "string" },
+    { "key": "variantId", "value": "", "type": "string" },
+    { "key": "primaryImageId", "value": "", "type": "string" },
+    { "key": "secondImageId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Chuẩn bị",
+      "item": [
+        {
+          "name": "01 - Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('API hoạt động', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Đăng nhập admin thành công', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.user.role).to.eql('ADMIN');",
+                  "  pm.collectionVariables.set('accessToken', body.data.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Lấy Category ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Có ít nhất một danh mục', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const categories = pm.response.json().data;",
+                  "  pm.expect(categories).to.be.an('array').that.is.not.empty;",
+                  "  pm.collectionVariables.set('categoryId', String(categories[0].id));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Lấy Brand ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/brands"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Có ít nhất một thương hiệu', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const brands = pm.response.json().data;",
+                  "  pm.expect(brands).to.be.an('array').that.is.not.empty;",
+                  "  pm.collectionVariables.set('brandId', String(brands[0].id));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Admin Product CRUD",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "01 - Tạo Product",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('testSuffix', Date.now().toString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tạo sản phẩm thành công', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.product.hasVariants).to.eql(true);",
+                  "  pm.expect(body.data.product.stock).to.eql(0);",
+                  "  pm.collectionVariables.set('productId', String(body.data.product.id));",
+                  "  pm.collectionVariables.set('productSlug', body.data.product.slug);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": {{categoryId}},\n  \"brandId\": {{brandId}},\n  \"name\": \"Postman Product {{testSuffix}}\",\n  \"sku\": \"PM-PRODUCT-{{testSuffix}}\",\n  \"shortDescription\": \"Sản phẩm dùng để kiểm thử Postman\",\n  \"description\": \"Dữ liệu test phần 06\",\n  \"specifications\": {\n    \"storage\": \"256GB\",\n    \"color\": \"Black\"\n  },\n  \"price\": 16000000,\n  \"salePrice\": 15000000,\n  \"stock\": 99,\n  \"hasVariants\": true,\n  \"warrantyMonths\": 12,\n  \"weightGram\": 200,\n  \"isFeatured\": true,\n  \"isNew\": true,\n  \"status\": \"ACTIVE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/products"
+          }
+        },
+        {
+          "name": "02 - Kiểm tra SKU trùng (mong đợi 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": {{categoryId}},\n  \"name\": \"Duplicate SKU\",\n  \"sku\": \"PM-PRODUCT-{{testSuffix}}\",\n  \"price\": 1000000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/products"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Từ chối SKU trùng', function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().success).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Kiểm tra salePrice sai (mong đợi 422)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 10000000,\n  \"salePrice\": 11000000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/products/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Từ chối salePrice lớn hơn price', function () {",
+                  "  pm.response.to.have.status(422);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Cập nhật Product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shortDescription\": \"Đã cập nhật bằng Postman\",\n  \"warrantyMonths\": 24\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/products/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cập nhật sản phẩm thành công', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.product.warrantyMonths).to.eql(24);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Admin Variants và Images",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "01 - Tạo Variant",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"PM-VARIANT-{{testSuffix}}\",\n  \"variantName\": \"256GB - Black\",\n  \"attributes\": {\n    \"storage\": \"256GB\",\n    \"color\": \"Black\"\n  },\n  \"price\": 16000000,\n  \"salePrice\": 15000000,\n  \"stock\": 10,\n  \"imageUrl\": \"https://example.com/variant-black.png\",\n  \"sortOrder\": 1,\n  \"status\": \"ACTIVE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/products/{{productId}}/variants"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tạo variant thành công', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  const variant = pm.response.json().data.variant;",
+                  "  pm.expect(variant.productId).to.eql(Number(pm.collectionVariables.get('productId')));",
+                  "  pm.collectionVariables.set('variantId', String(variant.id));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Cập nhật Variant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"salePrice\": 14500000,\n  \"stock\": 12\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/variants/{{variantId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cập nhật variant thành công', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const variant = pm.response.json().data.variant;",
+                  "  pm.expect(variant.stock).to.eql(12);",
+                  "  pm.expect(variant.salePrice).to.eql(14500000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Thêm ảnh đầu tiên",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"variantId\": {{variantId}},\n  \"imageUrl\": \"https://example.com/product-one.png\",\n  \"altText\": \"Ảnh sản phẩm thứ nhất\",\n  \"sortOrder\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/products/{{productId}}/images"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Ảnh đầu tiên tự trở thành ảnh chính', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  const image = pm.response.json().data.image;",
+                  "  pm.expect(image.isPrimary).to.eql(true);",
+                  "  pm.collectionVariables.set('primaryImageId', String(image.id));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Thêm ảnh chính mới",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://example.com/product-two.png\",\n  \"altText\": \"Ảnh sản phẩm thứ hai\",\n  \"isPrimary\": true,\n  \"sortOrder\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/products/{{productId}}/images"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Đặt ảnh mới làm ảnh chính', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  const image = pm.response.json().data.image;",
+                  "  pm.expect(image.isPrimary).to.eql(true);",
+                  "  pm.collectionVariables.set('secondImageId', String(image.id));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Đặt lại ảnh đầu tiên làm ảnh chính",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/product-images/{{primaryImageId}}/primary"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Đổi ảnh chính thành công', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.image.isPrimary).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Public Products",
+      "item": [
+        {
+          "name": "01 - Danh sách và Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/products?search=Postman&category={{categoryId}}&brand={{brandId}}&minPrice=10000000&maxPrice=20000000&sort=price_asc&featured=true&new=true&page=1&limit=10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Filter tìm thấy sản phẩm vừa tạo', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data.products.some(function (item) { return String(item.id) === pm.collectionVariables.get('productId'); })).to.eql(true);",
+                  "  pm.expect(data.pagination.page).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Chi tiết theo ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/products/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Chi tiết có variant, ảnh và stock đồng bộ', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data.product.stock).to.eql(12);",
+                  "  pm.expect(data.product.salePrice).to.eql(14500000);",
+                  "  pm.expect(data.variants).to.have.lengthOf(1);",
+                  "  pm.expect(data.images.filter(function (image) { return image.isPrimary; })).to.have.lengthOf(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Chi tiết theo Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/products/slug/{{productSlug}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Lấy sản phẩm theo slug thành công', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.product.slug).to.eql(pm.collectionVariables.get('productSlug'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Dọn dữ liệu test",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{accessToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "01 - Xóa ảnh thứ hai",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/product-images/{{secondImageId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Xóa ảnh thứ hai', function () { pm.response.to.have.status(200); });"] }
+            }
+          ]
+        },
+        {
+          "name": "02 - Xóa ảnh đầu tiên",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/product-images/{{primaryImageId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Xóa ảnh đầu tiên', function () { pm.response.to.have.status(200); });"] }
+            }
+          ]
+        },
+        {
+          "name": "03 - Xóa Variant",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/variants/{{variantId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Xóa variant', function () { pm.response.to.have.status(200); });"] }
+            }
+          ]
+        },
+        {
+          "name": "04 - Soft Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/products/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Soft delete sản phẩm', function () { pm.response.to.have.status(200); });"] }
+            }
+          ]
+        },
+        {
+          "name": "05 - Public không còn thấy Product (mong đợi 404)",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/products/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Sản phẩm đã xóa mềm không xuất hiện public', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "  pm.expect(pm.response.json().success).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

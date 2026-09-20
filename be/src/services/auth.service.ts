@@ -1,25 +1,15 @@
 import bcrypt from 'bcrypt';
-
 import { withTransaction } from '../config/database';
 import * as authRepository from '../repositories/auth.repository';
+import * as sessionRepository from '../repositories/session.repository';
 import type { AuthenticatedUser } from '../types/auth';
 import { AppError } from '../utils/app-error';
-import {
-  hashRefreshToken,
-  signAccessToken,
-  signRefreshToken,
-  verifyRefreshToken,
-} from '../utils/token';
-import type { LoginInput, RegisterInput } from '../validators/auth.validator';
+import type { LoginInput,RegisterInput } from '../validators/auth.validator';
+import { ClientMetadata,createTokenPair } from './auth.shared';
 
-interface ClientMetadata {
-  userAgent: string | null;
-  ipAddress: string | null;
-}
+export const BCRYPT_ROUNDS = 12;
 
-const BCRYPT_ROUNDS = 12;
-
-const toPublicUser = (user: authRepository.PublicUserRecord | authRepository.UserRecord) => ({
+export const toPublicUser = (user: authRepository.PublicUserRecord | authRepository.UserRecord) => ({
   id: user.id,
   fullName: user.full_name,
   email: user.email,
@@ -31,19 +21,7 @@ const toPublicUser = (user: authRepository.PublicUserRecord | authRepository.Use
   updatedAt: user.updated_at,
 });
 
-const createTokenPair = (user: AuthenticatedUser) => {
-  const accessToken = signAccessToken(user);
-  const refresh = signRefreshToken(user);
-
-  return {
-    accessToken,
-    refreshToken: refresh.token,
-    refreshTokenHash: hashRefreshToken(refresh.token),
-    refreshTokenExpiresAt: refresh.expiresAt,
-  };
-};
-
-const isDuplicateEntryError = (error: unknown): boolean =>
+export const isDuplicateEntryError = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && 'code' in error && error.code === 'ER_DUP_ENTRY';
 
 export const register = async (input: RegisterInput) => {
@@ -98,7 +76,7 @@ export const login = async (input: LoginInput, metadata: ClientMetadata) => {
 
   await withTransaction(async (connection) => {
     await authRepository.updateLastLogin(user.id, connection);
-    await authRepository.createRefreshToken(connection, {
+    await sessionRepository.createRefreshToken(connection, {
       userId: user.id,
       tokenHash: tokens.refreshTokenHash,
       userAgent: metadata.userAgent,
@@ -113,54 +91,6 @@ export const login = async (input: LoginInput, metadata: ClientMetadata) => {
     refreshToken: tokens.refreshToken,
   };
 };
-
-export const refreshTokens = async (rawRefreshToken: string, metadata: ClientMetadata) => {
-  const payload = verifyRefreshToken(rawRefreshToken);
-  const userId = Number(payload.sub);
-  const currentTokenHash = hashRefreshToken(rawRefreshToken);
-
-  return withTransaction(async (connection) => {
-    const storedToken = await authRepository.findUsableRefreshTokenForUpdate(
-      connection,
-      currentTokenHash,
-    );
-
-    if (!storedToken || storedToken.user_id !== userId) {
-      throw new AppError(401, 'Refresh token không hợp lệ hoặc đã bị thu hồi');
-    }
-
-    await authRepository.revokeRefreshTokenById(connection, storedToken.id);
-
-    const tokens = createTokenPair({ id: storedToken.user_id, role: storedToken.role });
-    await authRepository.createRefreshToken(connection, {
-      userId: storedToken.user_id,
-      tokenHash: tokens.refreshTokenHash,
-      userAgent: metadata.userAgent,
-      ipAddress: metadata.ipAddress,
-      expiresAt: tokens.refreshTokenExpiresAt,
-    });
-
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    };
-  });
-};
-
-export const logout = async (rawRefreshToken: string): Promise<void> => {
-  const payload = verifyRefreshToken(rawRefreshToken);
-  const revoked = await authRepository.revokeRefreshToken(
-    Number(payload.sub),
-    hashRefreshToken(rawRefreshToken),
-  );
-
-  if (!revoked) {
-    throw new AppError(401, 'Refresh token không hợp lệ hoặc đã bị thu hồi');
-  }
-};
-
-export const logoutAll = async (userId: number): Promise<number> =>
-  authRepository.revokeAllRefreshTokens(userId);
 
 export const getCurrentUser = async (userId: number) => {
   const user = await authRepository.findActiveUserById(userId);

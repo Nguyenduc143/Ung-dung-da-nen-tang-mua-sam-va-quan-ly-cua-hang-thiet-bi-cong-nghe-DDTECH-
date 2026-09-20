@@ -1,12 +1,13 @@
 import { Router } from 'express';
+import { validateParams } from '../middleware/validate.middleware';
 
 import * as addressController from '../controllers/address.controller';
 import { authenticate } from '../middleware/auth.middleware';
-import { validateBody, validateParams } from '../middleware/validate.middleware';
+import { validateBody } from '../middleware/validate.middleware';
 import {
-  addressIdParamsSchema,
-  createAddressSchema,
-  updateAddressSchema,
+addressIdParamsSchema,
+createAddressSchema,
+updateAddressSchema,
 } from '../validators/address.validator';
 
 export const addressRouter = Router();

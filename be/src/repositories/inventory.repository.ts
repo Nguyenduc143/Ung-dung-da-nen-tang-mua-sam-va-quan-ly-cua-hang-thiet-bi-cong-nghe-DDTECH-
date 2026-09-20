@@ -1,6 +1,6 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
-import { pool } from '../config/database';
+import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
 import type {
   InventoryQuery,
   InventoryTransactionQuery,
@@ -89,46 +89,23 @@ export const listInventory = async (query: InventoryQuery) => {
   }
   const where = conditions.join(' AND ');
   const offset = (query.page - 1) * query.limit;
-  const [products] = await pool.execute<InventoryProductRecord[]>(
-    `SELECT ${PRODUCT_COLUMNS} FROM products
+  const [products] = await executeDynamicProcedure<InventoryProductRecord[]>(pool, 'sp_dynamic_inventory_listinventory_1', `SELECT ${PRODUCT_COLUMNS} FROM products
      WHERE ${where} ORDER BY updated_at DESC, id DESC
-     LIMIT ? OFFSET ?`,
-    [...values, query.limit, offset],
-  );
-  const [countRows] = await pool.execute<CountRecord[]>(
-    `SELECT COUNT(*) AS total FROM products WHERE ${where}`,
-    values,
-  );
+     LIMIT ? OFFSET ?`, [...values, query.limit, offset]);
+  const [countRows] = await executeDynamicProcedure<CountRecord[]>(pool, 'sp_dynamic_inventory_listinventory_2', `SELECT COUNT(*) AS total FROM products WHERE ${where}`, values);
   let variants: InventoryVariantRecord[] = [];
   if (products.length > 0) {
     const placeholders = products.map(() => '?').join(', ');
-    const [variantRows] = await pool.execute<InventoryVariantRecord[]>(
-      `SELECT ${VARIANT_COLUMNS} FROM product_variants
+    const [variantRows] = await executeDynamicProcedure<InventoryVariantRecord[]>(pool, 'sp_dynamic_inventory_listinventory_3', `SELECT ${VARIANT_COLUMNS} FROM product_variants
        WHERE product_id IN (${placeholders})
-       ORDER BY product_id, sort_order, id`,
-      products.map((product) => product.id),
-    );
+       ORDER BY product_id, sort_order, id`, products.map((product) => product.id));
     variants = variantRows;
   }
   return { products, variants, total: countRows[0]?.total ?? 0 };
 };
 
 export const listLowStock = async (threshold: number): Promise<LowStockRecord[]> => {
-  const [rows] = await pool.execute<LowStockRecord[]>(
-    `SELECT p.id AS productId, p.name AS productName, p.sku AS productSku,
-            NULL AS variantId, NULL AS variantName, NULL AS variantSku, p.stock
-     FROM products p
-     WHERE p.deleted_at IS NULL AND p.status = 'ACTIVE'
-       AND p.has_variants = 0 AND p.stock <= ?
-     UNION ALL
-     SELECT p.id, p.name, p.sku, pv.id, pv.variant_name, pv.sku, pv.stock
-     FROM products p
-     INNER JOIN product_variants pv ON pv.product_id = p.id
-     WHERE p.deleted_at IS NULL AND p.status = 'ACTIVE'
-       AND p.has_variants = 1 AND pv.status = 'ACTIVE' AND pv.stock <= ?
-     ORDER BY stock, productId, variantId`,
-    [threshold, threshold],
-  );
+  const [rows] = await executeProcedure<LowStockRecord[]>(pool, 'sp_inventory_listlowstock_1', [threshold, threshold]);
   return rows;
 };
 
@@ -161,8 +138,7 @@ export const listTransactions = async (query: InventoryTransactionQuery) => {
   }
   const where = conditions.length === 0 ? '1 = 1' : conditions.join(' AND ');
   const offset = (query.page - 1) * query.limit;
-  const [transactions] = await pool.execute<InventoryTransactionRecord[]>(
-    `SELECT it.id, it.product_id AS productId, p.name AS productName,
+  const [transactions] = await executeDynamicProcedure<InventoryTransactionRecord[]>(pool, 'sp_dynamic_inventory_listtransactions_1', `SELECT it.id, it.product_id AS productId, p.name AS productName,
             p.sku AS productSku, it.variant_id AS variantId,
             pv.variant_name AS variantName, pv.sku AS variantSku,
             it.type, it.quantity, it.stock_after AS stockAfter,
@@ -175,13 +151,8 @@ export const listTransactions = async (query: InventoryTransactionQuery) => {
      LEFT JOIN users u ON u.id = it.created_by
      WHERE ${where}
      ORDER BY it.created_at DESC, it.id DESC
-     LIMIT ? OFFSET ?`,
-    [...values, query.limit, offset],
-  );
-  const [countRows] = await pool.execute<CountRecord[]>(
-    `SELECT COUNT(*) AS total FROM inventory_transactions it WHERE ${where}`,
-    values,
-  );
+     LIMIT ? OFFSET ?`, [...values, query.limit, offset]);
+  const [countRows] = await executeDynamicProcedure<CountRecord[]>(pool, 'sp_dynamic_inventory_listtransactions_2', `SELECT COUNT(*) AS total FROM inventory_transactions it WHERE ${where}`, values);
   return { transactions, total: countRows[0]?.total ?? 0 };
 };
 
@@ -189,10 +160,7 @@ export const findProductForUpdate = async (
   productId: number,
   connection: PoolConnection,
 ): Promise<InventoryProductRecord | null> => {
-  const [rows] = await connection.execute<InventoryProductRecord[]>(
-    `SELECT ${PRODUCT_COLUMNS} FROM products WHERE id = ? LIMIT 1 FOR UPDATE`,
-    [productId],
-  );
+  const [rows] = await executeProcedure<InventoryProductRecord[]>(connection, 'sp_inventory_findproductforupdate_1', [productId]);
   return rows[0] ?? null;
 };
 
@@ -200,11 +168,7 @@ export const findVariantForUpdate = async (
   variantId: number,
   connection: PoolConnection,
 ): Promise<InventoryVariantRecord | null> => {
-  const [rows] = await connection.execute<InventoryVariantRecord[]>(
-    `SELECT ${VARIANT_COLUMNS} FROM product_variants
-     WHERE id = ? LIMIT 1 FOR UPDATE`,
-    [variantId],
-  );
+  const [rows] = await executeProcedure<InventoryVariantRecord[]>(connection, 'sp_inventory_findvariantforupdate_1', [variantId]);
   return rows[0] ?? null;
 };
 
@@ -213,7 +177,7 @@ export const updateProductStock = async (
   stock: number,
   connection: PoolConnection,
 ): Promise<void> => {
-  await connection.execute('UPDATE products SET stock = ? WHERE id = ?', [stock, productId]);
+  await executeProcedure(connection, 'sp_inventory_updateproductstock_1', [stock, productId]);
 };
 
 export const updateVariantStock = async (
@@ -221,20 +185,14 @@ export const updateVariantStock = async (
   stock: number,
   connection: PoolConnection,
 ): Promise<void> => {
-  await connection.execute(
-    'UPDATE product_variants SET stock = ? WHERE id = ?',
-    [stock, variantId],
-  );
+  await executeProcedure(connection, 'sp_inventory_updatevariantstock_1', [stock, variantId]);
 };
 
 export const sumVariantStock = async (
   productId: number,
   connection: PoolConnection,
 ): Promise<string | number> => {
-  const [rows] = await connection.execute<StockSumRecord[]>(
-    'SELECT COALESCE(SUM(stock), 0) AS total FROM product_variants WHERE product_id = ?',
-    [productId],
-  );
+  const [rows] = await executeProcedure<StockSumRecord[]>(connection, 'sp_inventory_sumvariantstock_1', [productId]);
   return rows[0]?.total ?? 0;
 };
 
@@ -250,11 +208,7 @@ export const createTransaction = async (
   },
   connection: PoolConnection,
 ): Promise<number> => {
-  const [result] = await connection.execute<ResultSetHeader>(
-    `INSERT INTO inventory_transactions
-       (product_id, variant_id, type, quantity, stock_after, note, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_inventory_createtransaction_1', [
       data.productId,
       data.variantId,
       data.type,
@@ -262,28 +216,13 @@ export const createTransaction = async (
       data.stockAfter,
       data.note,
       data.createdBy,
-    ],
-  );
+    ]);
   return result.insertId;
 };
 
 export const findTransaction = async (
   transactionId: number,
 ): Promise<InventoryTransactionRecord | null> => {
-  const [rows] = await pool.execute<InventoryTransactionRecord[]>(
-    `SELECT it.id, it.product_id AS productId, p.name AS productName,
-            p.sku AS productSku, it.variant_id AS variantId,
-            pv.variant_name AS variantName, pv.sku AS variantSku,
-            it.type, it.quantity, it.stock_after AS stockAfter,
-            it.reference_type AS referenceType, it.reference_id AS referenceId,
-            it.note, it.created_by AS createdBy, u.full_name AS createdByName,
-            it.created_at AS createdAt
-     FROM inventory_transactions it
-     INNER JOIN products p ON p.id = it.product_id
-     LEFT JOIN product_variants pv ON pv.id = it.variant_id
-     LEFT JOIN users u ON u.id = it.created_by
-     WHERE it.id = ? LIMIT 1`,
-    [transactionId],
-  );
+  const [rows] = await executeProcedure<InventoryTransactionRecord[]>(pool, 'sp_inventory_findtransaction_1', [transactionId]);
   return rows[0] ?? null;
 };

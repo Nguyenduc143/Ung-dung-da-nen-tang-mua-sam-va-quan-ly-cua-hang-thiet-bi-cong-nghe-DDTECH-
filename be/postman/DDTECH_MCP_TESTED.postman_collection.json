@@ -1,0 +1,3603 @@
+{
+  "info": {
+    "name": "DDTECH - Full API MCP tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Sequential test run using dedicated temporary fixtures. Includes expected error cases. Snapshot of the completed run. Test fixtures are removed after execution; provision fresh fixtures before rerunning."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "mcp-1789529893769@example.invalid",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth / Register",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/register",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"fullName\":\"mcp-1789529893769\",\"email\":\"mcp-1789529893769-user@example.invalid\",\"phone\":\"0929990051\",\"password\":\"McpTest123!Ab\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('userId',j.data.user.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Login",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/login",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"mcp-1789529893769-user@example.invalid\",\"password\":\"McpTest123!Ab\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('accessToken',j.data.accessToken);",
+              "if(pm.response.code<300) pm.collectionVariables.set('refreshToken',j.data.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Me",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/auth/me",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Refresh",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/refresh-token",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\":\"{{refreshToken}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "pm.collectionVariables.set('oldRefresh',pm.collectionVariables.get('refreshToken'));",
+              "if(pm.response.code<300) pm.collectionVariables.set('accessToken',j.data.accessToken);",
+              "if(pm.response.code<300) pm.collectionVariables.set('refreshToken',j.data.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Reuse old refresh rejected",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/refresh-token",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\":\"{{oldRefresh}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401',()=>pm.response.to.have.status(401));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Logout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/logout",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\":\"{{refreshToken}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Revoked refresh rejected",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/refresh-token",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\":\"{{refreshToken}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401',()=>pm.response.to.have.status(401));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Login again",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/login",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"mcp-1789529893769-user@example.invalid\",\"password\":\"McpTest123!Ab\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('accessToken',j.data.accessToken);",
+              "if(pm.response.code<300) pm.collectionVariables.set('refreshToken',j.data.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / Login",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/login",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('adminToken',j.data.accessToken);",
+              "if(pm.response.code<300) pm.collectionVariables.set('adminRefresh',j.data.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / Customer denied",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/users",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403',()=>pm.response.to.have.status(403));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / User list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/users?search=mcp-1789529893769",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / User detail",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/users/{{userId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "User / Profile",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users/me",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "User / Update profile",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/users/me",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"fullName\":\"mcp-1789529893769 updated\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category / Create",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/categories",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"mcp-1789529893769\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('categoryId',j.data.id);",
+              "if(pm.response.code<300) pm.collectionVariables.set('categorySlug',j.data.slug);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/categories",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category / Detail",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/categories/{{categorySlug}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category / Admin list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/categories",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category / Duplicate slug",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/categories",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"mcp-1789529893769\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409',()=>pm.response.to.have.status(409));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category / Self parent rejected",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/categories/{{categoryId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"parentId\":{{categoryId}}}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409',()=>pm.response.to.have.status(409));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category / Update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/categories/{{categoryId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"description\":\"Postman MCP test\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attribute / Create",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/categories/{{categoryId}}/attributes",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"attrKey\":\"memory\",\"attrName\":\"Memory\",\"inputType\":\"SELECT\",\"options\":[\"128\",\"256\"]}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('attributeId',j.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attribute / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/categories/{{categoryId}}/attributes",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attribute / Update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/category-attributes/{{attributeId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"attrName\":\"Storage\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brand / Create",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/brands",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"mcp-1789529893769\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('brandId',j.data.id);",
+              "if(pm.response.code<300) pm.collectionVariables.set('brandSlug',j.data.slug);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brand / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/brands",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brand / Detail",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/brands/{{brandSlug}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brand / Admin list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/brands",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brand / Update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/brands/{{brandId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"description\":\"Postman test\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product / Create",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/products",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"mcp-1789529893769\",\"sku\":\"mcp-1789529893769\",\"categoryId\":{{categoryId}},\"brandId\":{{brandId}},\"price\":100000,\"stock\":20}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('productId',j.data.product.id);",
+              "if(pm.response.code<300) pm.collectionVariables.set('productSlug',j.data.product.slug);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products?search=mcp-1789529893769",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product / Detail",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product / Slug",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products/slug/{{productSlug}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product / Update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/products/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"description\":\"MCP product\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product / Reject direct stock change",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/products/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"stock\":999}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 422',()=>pm.response.to.have.status(422));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Image / Create",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/products/{{productId}}/images",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"imageUrl\":\"https://example.com/test.png\",\"isPrimary\":true}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('imageId',j.data.image.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Image / Primary",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/product-images/{{imageId}}/primary",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Favorite / Add",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/favorites/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Favorite / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/favorites",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Favorite / Remove",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/favorites/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart / Unauthorized",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/cart",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401',()=>pm.response.to.have.status(401));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart / Add",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/cart/items",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productId\":{{productId}},\"quantity\":1}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/cart",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('cartItemId',j.data.items[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart / Update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/cart/items/{{cartItemId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quantity\":2}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart / Reject zero",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/cart/items/{{cartItemId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quantity\":0}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 422',()=>pm.response.to.have.status(422));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promotion / Create",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/promotions",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"code\":\"mcp-1789529893769\",\"name\":\"mcp-1789529893769\",\"discountType\":\"FIXED\",\"discountValue\":10000,\"minOrderValue\":0,\"usageLimit\":10,\"usageLimitPerUser\":5,\"startDate\":\"2020-01-01\",\"endDate\":\"2099-01-01\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('promotionId',j.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promotion / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/promotions",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promotion / Update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/promotions/{{promotionId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"description\":\"MCP promotion\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promotion / Validate",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/promotions/validate",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"code\":\"mcp-1789529893769\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / Checkout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/orders",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"receiverName\":\"MCP Test\",\"receiverPhone\":\"0901234567\",\"province\":\"Ha Noi\",\"district\":\"Ba Dinh\",\"addressLine\":\"123 test\",\"shippingMethodId\":3,\"paymentMethod\":\"COD\",\"promotionCode\":\"mcp-1789529893769\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('orderId',j.data.order.id);",
+              "pm.test('server total',()=>pm.expect(j.data.order.totalAmount).to.eql(200000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / My list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/orders/my-orders",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / Detail",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/orders/{{orderId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / Admin list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/orders",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / Admin detail",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/orders/{{orderId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / CONFIRMED",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/orders/{{orderId}}/status",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"CONFIRMED\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / PROCESSING",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/orders/{{orderId}}/status",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"PROCESSING\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / SHIPPING",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/orders/{{orderId}}/status",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"SHIPPING\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / DELIVERED",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/orders/{{orderId}}/status",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"DELIVERED\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment / COD",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/payments/{{orderId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "pm.test('paid on delivery',()=>pm.expect(j.data.payment.status).to.eql('PAID'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review / Create",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/products/{{productId}}/reviews",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"rating\":5,\"comment\":\"MCP verified review\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('reviewId',j.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products/{{productId}}/reviews",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review / Update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/reviews/{{reviewId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"comment\":\"Updated MCP\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review / Admin list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/reviews",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review / Approve",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/reviews/{{reviewId}}/status",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"APPROVED\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review / Reply",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/reviews/{{reviewId}}/reply",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"reply\":\"Thank you\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/inventory?search=mcp-1789529893769",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory / Import",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/inventory/import",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productId\":{{productId}},\"quantity\":5,\"note\":\"MCP test\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory / Adjust",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/inventory/adjust",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productId\":{{productId}},\"quantity\":-1,\"note\":\"MCP test\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory / Reject negative stock",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/inventory/adjust",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productId\":{{productId}},\"quantity\":-99999}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409',()=>pm.response.to.have.status(409));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory / Transactions",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/inventory/transactions?productId={{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory / Low stock",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/inventory/low-stock",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory / Stock verified",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "pm.test('stock after sale and adjustments',()=>pm.expect(j.data.product.stock).to.eql(22));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard / summary",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/dashboard/summary",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard / revenue",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/dashboard/revenue",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard / orders-by-status",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/dashboard/orders-by-status",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard / top-products",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/dashboard/top-products",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard / recent-orders",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/dashboard/recent-orders",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard / low-stock",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/dashboard/low-stock",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications / List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/notifications",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications / Count",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/notifications/unread-count",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart / Add for cancel",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/cart/items",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productId\":{{productId}},\"quantity\":1}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / Second checkout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/orders",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"receiverName\":\"MCP Test\",\"receiverPhone\":\"0901234567\",\"province\":\"Ha Noi\",\"district\":\"Ba Dinh\",\"addressLine\":\"123 test\",\"shippingMethodId\":3,\"paymentMethod\":\"COD\",\"promotionCode\":\"mcp-1789529893769\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));",
+              "if(pm.response.code<300) pm.collectionVariables.set('cancelOrderId',j.data.order.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order / Cancel",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/orders/{{cancelOrderId}}/cancel",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"reason\":\"MCP cancellation test\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review / Delete",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/reviews/{{reviewId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Image / Delete",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/product-images/{{imageId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attribute / Delete",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/category-attributes/{{attributeId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promotion / Delete",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/promotions/{{promotionId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product / Soft delete",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/products/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product / Deleted hidden",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products/{{productId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404',()=>pm.response.to.have.status(404));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brand / Soft delete",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/brands/{{brandId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category / Soft delete",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/categories/{{categoryId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / Lock user",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/users/{{userId}}/status",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"LOCKED\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / Locked access denied",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/auth/me",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401',()=>pm.response.to.have.status(401));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / Unlock user",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/users/{{userId}}/status",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\":\"ACTIVE\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Logout all",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/logout-all",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth / Refresh after logout all",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/refresh-token",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\":\"{{refreshToken}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401',()=>pm.response.to.have.status(401));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin / Logout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/logout",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{adminToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\":\"{{adminRefresh}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "const j=pm.response.json();",
+              "pm.test('success flag',()=>pm.expect(j.success).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

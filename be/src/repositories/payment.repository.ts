@@ -1,6 +1,6 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
-import { pool } from '../config/database';
+import { executeDynamicProcedure, executeProcedure, pool } from '../config/database';
 
 export type PaymentMethod = 'COD' | 'VNPAY' | 'MOMO' | 'ZALOPAY';
 export type PaymentStatus = 'UNPAID' | 'PAID' | 'FAILED' | 'REFUNDED';
@@ -38,24 +38,12 @@ export const findOrderForUpdate = async (
   connection: PoolConnection,
   orderId: number,
 ): Promise<PaymentOrderRecord | null> => {
-  const [rows] = await connection.execute<PaymentOrderRecord[]>(
-    `SELECT id, order_code AS orderCode, user_id AS userId,
-            total_amount AS totalAmount, payment_method AS paymentMethod,
-            payment_status AS paymentStatus, status AS orderStatus
-     FROM orders WHERE id = ? LIMIT 1 FOR UPDATE`,
-    [orderId],
-  );
+  const [rows] = await executeProcedure<PaymentOrderRecord[]>(connection, 'sp_payment_findorderforupdate_1', [orderId]);
   return rows[0] ?? null;
 };
 
 export const findOrder = async (orderId: number): Promise<PaymentOrderRecord | null> => {
-  const [rows] = await pool.execute<PaymentOrderRecord[]>(
-    `SELECT id, order_code AS orderCode, user_id AS userId,
-            total_amount AS totalAmount, payment_method AS paymentMethod,
-            payment_status AS paymentStatus, status AS orderStatus
-     FROM orders WHERE id = ? LIMIT 1`,
-    [orderId],
-  );
+  const [rows] = await executeProcedure<PaymentOrderRecord[]>(pool, 'sp_payment_findorder_1', [orderId]);
   return rows[0] ?? null;
 };
 
@@ -65,12 +53,9 @@ export const findPayment = async (
 ): Promise<PaymentRecord | null> => {
   const methodFilter = method === undefined ? '' : ' AND method = ?';
   const values = method === undefined ? [orderId] : [orderId, method];
-  const [rows] = await pool.execute<PaymentRecord[]>(
-    `SELECT ${PAYMENT_COLUMNS} FROM payments
+  const [rows] = await executeDynamicProcedure<PaymentRecord[]>(pool, 'sp_dynamic_payment_findpayment_1', `SELECT ${PAYMENT_COLUMNS} FROM payments
      WHERE order_id = ?${methodFilter}
-     ORDER BY id DESC LIMIT 1`,
-    values,
-  );
+     ORDER BY id DESC LIMIT 1`, values);
   return rows[0] ?? null;
 };
 
@@ -79,12 +64,7 @@ export const findPaymentForUpdate = async (
   orderId: number,
   method: PaymentMethod,
 ): Promise<PaymentRecord | null> => {
-  const [rows] = await connection.execute<PaymentRecord[]>(
-    `SELECT ${PAYMENT_COLUMNS} FROM payments
-     WHERE order_id = ? AND method = ?
-     ORDER BY id DESC LIMIT 1 FOR UPDATE`,
-    [orderId, method],
-  );
+  const [rows] = await executeProcedure<PaymentRecord[]>(connection, 'sp_payment_findpaymentforupdate_1', [orderId, method]);
   return rows[0] ?? null;
 };
 
@@ -99,12 +79,7 @@ export const createPayment = async (
 ): Promise<number> => {
   const paidAt = data.status === 'PAID' ? new Date() : null;
   const refundedAt = data.status === 'REFUNDED' ? new Date() : null;
-  const [result] = await connection.execute<ResultSetHeader>(
-    `INSERT INTO payments
-       (order_id, method, status, amount, paid_at, refunded_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [data.orderId, data.method, data.status, data.amount, paidAt, refundedAt],
-  );
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_payment_createpayment_1', [data.orderId, data.method, data.status, data.amount, paidAt, refundedAt]);
   return result.insertId;
 };
 
@@ -117,10 +92,7 @@ export const updatePaymentStatus = async (
     PAID: 'paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP),',
     REFUNDED: 'refunded_at = COALESCE(refunded_at, CURRENT_TIMESTAMP),',
   };
-  await connection.execute(
-    `UPDATE payments SET ${timestamps[status] ?? ''} status = ? WHERE id = ?`,
-    [status, paymentId],
-  );
+  await executeDynamicProcedure(connection, 'sp_dynamic_payment_updatepaymentstatus_1', `UPDATE payments SET ${timestamps[status] ?? ''} status = ? WHERE id = ?`, [status, paymentId]);
 };
 
 export const updateOrderPaymentStatus = async (
@@ -128,17 +100,12 @@ export const updateOrderPaymentStatus = async (
   orderId: number,
   status: PaymentStatus,
 ): Promise<void> => {
-  await connection.execute('UPDATE orders SET payment_status = ? WHERE id = ?', [status, orderId]);
+  await executeProcedure(connection, 'sp_payment_updateorderpaymentstatus_1', [status, orderId]);
 };
 
 export const createPaymentNotification = async (
   connection: PoolConnection,
   data: { userId: number; title: string; message: string; orderId: number },
 ): Promise<void> => {
-  await connection.execute(
-    `INSERT INTO notifications
-       (user_id, title, message, type, reference_type, reference_id)
-     VALUES (?, ?, ?, 'PAYMENT', 'order', ?)`,
-    [data.userId, data.title, data.message, data.orderId],
-  );
+  await executeProcedure(connection, 'sp_payment_createpaymentnotification_1', [data.userId, data.title, data.message, data.orderId]);
 };
