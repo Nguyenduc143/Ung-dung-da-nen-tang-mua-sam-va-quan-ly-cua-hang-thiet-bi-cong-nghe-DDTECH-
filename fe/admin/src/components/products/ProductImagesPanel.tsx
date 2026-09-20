@@ -20,8 +20,11 @@ import { useMemo, useState } from 'react';
 
 import * as productApi from '../../api/productApi';
 import { getApiErrorMessage } from '../../api/axiosClient';
-import type { ProductImage, ProductImageInput, ProductVariant } from '../../types/product';
-import { ProductImageFormModal } from './ProductImageFormModal';
+import type { ProductImage, ProductVariant } from '../../types/product';
+import {
+  ProductImageFormModal,
+  type ProductImageFormSubmission,
+} from './ProductImageFormModal';
 
 const { Text } = Typography;
 
@@ -39,10 +42,14 @@ export function ProductImagesPanel({ productId, images, variants, onChanged }: P
   const [workingId, setWorkingId] = useState<number | null>(null);
   const variantById = useMemo(() => new Map(variants.map((item) => [item.id, item])), [variants]);
 
-  const handleCreate = async (input: ProductImageInput) => {
+  const handleCreate = async ({ file, imageUrl, ...metadata }: ProductImageFormSubmission) => {
     setSubmitting(true);
     try {
-      await productApi.createImage(productId, input);
+      if (file) {
+        await productApi.uploadImage(productId, file, metadata);
+      } else if (imageUrl) {
+        await productApi.createImage(productId, { ...metadata, imageUrl });
+      }
       message.success('Đã thêm ảnh sản phẩm.');
       setFormOpen(false);
       await onChanged();

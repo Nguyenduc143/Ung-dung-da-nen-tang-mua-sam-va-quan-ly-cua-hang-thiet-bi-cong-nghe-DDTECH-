@@ -35,8 +35,8 @@ export const createProductImage = async (
   return toImageResponse(image);
 };
 
-export const deleteProductImage = async (imageId: number): Promise<void> => {
-  await withTransaction(async (connection) => {
+export const deleteProductImage = async (imageId: number): Promise<string> => {
+  return withTransaction(async (connection) => {
     const image = await productImageRepository.findImage(imageId, connection);
     if (!image) throw new AppError(404, 'Không tìm thấy ảnh sản phẩm');
     await productRepository.lockProduct(image.productId, connection);
@@ -51,6 +51,7 @@ export const deleteProductImage = async (imageId: number): Promise<void> => {
         await productImageRepository.setPrimaryImage(image.productId, replacementId, connection);
       }
     }
+    return image.imageUrl;
   });
 };
 

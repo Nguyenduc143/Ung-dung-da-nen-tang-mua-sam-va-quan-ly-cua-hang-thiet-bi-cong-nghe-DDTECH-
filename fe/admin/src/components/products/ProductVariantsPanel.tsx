@@ -23,10 +23,10 @@ import * as productApi from '../../api/productApi';
 import { getApiErrorMessage } from '../../api/axiosClient';
 import type { CategoryAttribute } from '../../types/catalog';
 import type { ProductVariant, ProductVariantInput } from '../../types/product';
+import { currencyFormatter as moneyFormatter } from '../../utils/formatters';
 import { VariantFormModal } from './VariantFormModal';
 
 const { Text } = Typography;
-const moneyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
 
 interface ProductVariantsPanelProps {
   productId: number;

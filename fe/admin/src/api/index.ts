@@ -14,3 +14,7 @@ export * as productApi from './productApi';
 export * as inventoryApi from './inventoryApi';
 export * as orderApi from './orderApi';
 export * as userApi from './userApi';
+export * as promotionApi from './promotionApi';
+export * as reviewApi from './reviewApi';
+export * as dashboardApi from './dashboardApi';
+export * as notificationApi from './notificationApi';

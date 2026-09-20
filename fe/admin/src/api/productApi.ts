@@ -80,6 +80,25 @@ export const createImage = async (
   return response.data.data.image;
 };
 
+export const uploadImage = async (
+  productId: number,
+  file: File,
+  input: Omit<ProductImageInput, 'imageUrl'>,
+): Promise<ProductImage> => {
+  const formData = new FormData();
+  formData.append('image', file);
+  if (input.variantId != null) formData.append('variantId', String(input.variantId));
+  if (input.altText) formData.append('altText', input.altText);
+  formData.append('isPrimary', String(input.isPrimary ?? false));
+  formData.append('sortOrder', String(input.sortOrder ?? 0));
+
+  const response = await apiClient.post<ApiResponse<{ image: ProductImage }>>(
+    `/admin/products/${productId}/images/upload`,
+    formData,
+  );
+  return response.data.data.image;
+};
+
 export const deleteImage = async (id: number): Promise<void> => {
   await apiClient.delete<ApiResponse<null>>(`/admin/product-images/${id}`);
 };
