@@ -1,9 +1,8 @@
-const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+import { API_BASE_URL } from '@/constants';
 
 const getApiOrigin = (): string => {
-  if (!apiUrl) return '';
   try {
-    return new URL(apiUrl).origin;
+    return new URL(API_BASE_URL).origin;
   } catch {
     return '';
   }

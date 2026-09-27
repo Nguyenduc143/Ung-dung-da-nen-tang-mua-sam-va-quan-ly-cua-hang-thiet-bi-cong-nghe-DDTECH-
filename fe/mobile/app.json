@@ -26,6 +26,14 @@
       "expo-font",
       "expo-status-bar",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cho phép DDTECH truy cập thư viện ảnh để chọn ảnh đại diện.",
+          "cameraPermission": "Cho phép DDTECH sử dụng máy ảnh để chụp ảnh đại diện.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#ffffff",

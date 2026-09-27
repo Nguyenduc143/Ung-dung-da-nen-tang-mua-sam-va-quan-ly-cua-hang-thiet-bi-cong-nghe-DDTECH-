@@ -11,6 +11,9 @@ import {
 import { getApiErrorMessage } from '@/api/axiosClient';
 import type { AuthUser, LoginInput, RegisterInput, TokenPair } from '@/types';
 import { useBadgeStore } from './badgeStore';
+import { useFavoriteStore } from './favoriteStore';
+import { useCartStore } from './cartStore';
+import { useAddressStore } from './addressStore';
 
 export interface AuthState {
   user: AuthUser | null;
@@ -117,6 +120,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
       await clearAuthSession('logout', false).catch(() => undefined);
       useBadgeStore.getState().resetBadges();
+      useFavoriteStore.getState().resetFavorites();
+      useCartStore.getState().resetCart();
+      useAddressStore.getState().resetAddresses();
       set({
         user: null,
         accessToken: null,
@@ -138,6 +144,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const revokedCount = await authApi.logoutAll();
       await clearAuthSession('logout', false);
       useBadgeStore.getState().resetBadges();
+      useFavoriteStore.getState().resetFavorites();
+      useCartStore.getState().resetCart();
+      useAddressStore.getState().resetAddresses();
       set({
         user: null,
         accessToken: null,
@@ -238,6 +247,9 @@ subscribeToAuthTokensChanged((tokens) => {
 
 subscribeToAuthSessionCleared((reason) => {
   useBadgeStore.getState().resetBadges();
+  useFavoriteStore.getState().resetFavorites();
+  useCartStore.getState().resetCart();
+  useAddressStore.getState().resetAddresses();
   useAuthStore.setState({
     user: null,
     accessToken: null,

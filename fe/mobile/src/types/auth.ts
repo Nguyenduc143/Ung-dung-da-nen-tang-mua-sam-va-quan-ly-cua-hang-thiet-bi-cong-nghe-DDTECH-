@@ -1,5 +1,6 @@
 export type UserRole = 'CUSTOMER' | 'ADMIN';
 export type UserStatus = 'ACTIVE' | 'LOCKED';
+export type UserGender = 'MALE' | 'FEMALE' | 'OTHER';
 
 export interface AuthUser {
   id: number;
@@ -11,6 +12,25 @@ export interface AuthUser {
   status: UserStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UserProfile extends AuthUser {
+  gender: UserGender | null;
+  dateOfBirth: string | null;
+  lastLoginAt: string | null;
+}
+
+export interface UpdateProfileInput {
+  fullName?: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  gender?: UserGender | null;
+  dateOfBirth?: string | null;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface TokenPair {

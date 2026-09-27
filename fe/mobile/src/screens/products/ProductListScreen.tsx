@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   ScrollView,
@@ -12,12 +13,14 @@ import {
 } from 'react-native';
 
 import { EmptyState, ErrorState, ProductCard } from '@/components';
+import { getApiErrorMessage } from '@/api/axiosClient';
 import { useCatalogData, useProductList } from '@/hooks';
 import type { CustomerStackParamList, ProductListParams } from '@/navigation/types';
+import { useFavoriteStore } from '@/stores';
 import { colors, radius, spacing, typography } from '@/theme';
-import type { ProductListItem, ProductQuery, ProductSort } from '@/types';
+import type { ProductQuery, ProductSort } from '@/types';
 import {
-  getProductDiscountPercent,
+  getProductBadgeText,
   getProductImageSource,
   getProductOriginalPrice,
   getProductPrice,
@@ -41,21 +44,20 @@ const getInitialFilters = (params: ProductListParams | undefined): ProductListFi
   return filters;
 };
 
-const getProductBadge = (product: ProductListItem): string | undefined => {
-  const discount = getProductDiscountPercent(product);
-  if (discount > 0) return `-${discount}%`;
-  if (product.isNew) return 'Mới';
-  if (product.isFeatured) return 'Nổi bật';
-  return undefined;
-};
-
 export function ProductListScreen({ navigation, route }: Props) {
   const [filters, setFilters] = useState<ProductListFilterState>(
     () => getInitialFilters(route.params),
   );
   const [filterVisible, setFilterVisible] = useState(false);
   const [sortVisible, setSortVisible] = useState(false);
+  const favorites = useFavoriteStore((state) => state.favorites);
+  const updatingFavoriteIds = useFavoriteStore((state) => state.updatingProductIds);
+  const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
   const { brands, categories } = useCatalogData();
+  const favoriteProductIds = useMemo(
+    () => new Set(favorites.map((item) => item.product.id)),
+    [favorites],
+  );
 
   const sort = filters.sort ?? 'newest';
   const query = useMemo<Omit<ProductQuery, 'limit' | 'page'>>(() => ({
@@ -118,6 +120,17 @@ export function ProductListScreen({ navigation, route }: Props) {
 
   const clearProductFilters = () => {
     setFilters((current) => ({ search: current.search, sort: current.sort }));
+  };
+
+  const handleToggleFavorite = async (productId: number) => {
+    try {
+      await toggleFavorite(productId);
+    } catch (favoriteError) {
+      Alert.alert(
+        'Không thể cập nhật yêu thích',
+        getApiErrorMessage(favoriteError, 'Vui lòng thử lại.'),
+      );
+    }
   };
 
   const listHeader = (
@@ -267,10 +280,13 @@ export function ProductListScreen({ navigation, route }: Props) {
         refreshing={isRefreshing}
         renderItem={({ item }) => (
           <ProductCard
-            badgeText={getProductBadge(item)}
+            badgeText={getProductBadgeText(item)}
             imageSource={getProductImageSource(item)}
+            isFavorite={favoriteProductIds.has(item.id)}
+            isTogglingFavorite={updatingFavoriteIds.has(item.id)}
             name={item.name}
             onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
+            onToggleFavorite={() => void handleToggleFavorite(item.id)}
             originalPrice={getProductOriginalPrice(item)}
             price={getProductPrice(item)}
             rating={item.ratingAvg}

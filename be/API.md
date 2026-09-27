@@ -81,6 +81,7 @@ Database chỉ lưu SHA-256 hash của refresh token.
 |---|---|---|---|---|---|
 | GET | `/users/me` | Customer/Admin | Không | `{ user }` | `401`, `404` |
 | PATCH | `/users/me` | Customer/Admin | Một hoặc nhiều: `fullName`, `phone`, `avatarUrl`, `gender`, `dateOfBirth` | `{ user }` | `401`, `409`, `422` |
+| POST | `/users/me/avatar` | Customer/Admin | `multipart/form-data`: file `image` (JPG/PNG/WEBP, tối đa 5 MB) | `{ user }` | `401`, `413`, `422` |
 | PATCH | `/users/me/password` | Customer/Admin | `currentPassword`, `newPassword` | `null` | `401`, `422` |
 | GET | `/addresses` | Customer/Admin | Không | `{ addresses }` | `401` |
 | POST | `/addresses` | Customer/Admin | Thông tin địa chỉ bên dưới | `{ address }` | `401`, `422` |
@@ -200,6 +201,7 @@ Checkout bằng địa chỉ đã lưu:
 ```json
 {
   "addressId": 1,
+  "cartItemIds": [12, 15],
   "shippingMethodId": 1,
   "promotionCode": "DDTECH10",
   "note": "Giao giờ hành chính",
@@ -209,7 +211,9 @@ Checkout bằng địa chỉ đã lưu:
 
 Có thể thay `addressId` bằng đủ `receiverName`, `receiverPhone`, `province`, `district`,
 `ward`, `addressLine`. Backend khóa tồn kho trong transaction, tự lấy giá và không nhận
-`totalAmount`, `stock` hoặc `paymentStatus` từ client.
+`totalAmount`, `stock` hoặc `paymentStatus` từ client. `cartItemIds` là danh sách item
+được chọn để thanh toán; backend chỉ tạo đơn và xóa các item này. Nếu bỏ qua trường này,
+toàn bộ giỏ hàng được thanh toán để tương thích với client cũ.
 
 ## Payments
 

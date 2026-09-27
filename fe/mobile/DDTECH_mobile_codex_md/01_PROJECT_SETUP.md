@@ -26,11 +26,13 @@ DDTECH/frontend/mobile
 Tạo `.env`:
 
 ```env
-EXPO_PUBLIC_API_URL=http://192.168.x.x:5000/api
-EXPO_PUBLIC_SOCKET_URL=http://192.168.x.x:5000
+EXPO_PUBLIC_API_URL=http://localhost:5000/api
+EXPO_PUBLIC_SOCKET_URL=http://localhost:5000
 ```
 
-Không hard-code IP trong code.
+Trong development, `runtimeConfig.ts` tự lấy IP LAN từ Metro khi chạy
+`expo start --lan`; điện thoại không gọi `localhost`. Khi build production,
+thay bằng domain HTTPS thật của backend. Không hard-code IP LAN trong code.
 
 ## Kiểm tra
 

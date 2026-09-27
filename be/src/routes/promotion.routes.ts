@@ -5,6 +5,7 @@ import { requireAdmin } from '../middleware/admin.middleware';
 import { authenticate } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validate.middleware';
 import {
+  availablePromotionsSchema,
   createPromotionSchema,
   updatePromotionSchema,
   validatePromotionSchema,
@@ -13,6 +14,11 @@ import {
 export const promotionRouter = Router();
 
 promotionRouter.use(authenticate);
+promotionRouter.post(
+  '/available',
+  validateBody(availablePromotionsSchema),
+  promotionController.available,
+);
 promotionRouter.post(
   '/validate',
   validateBody(validatePromotionSchema),

@@ -29,6 +29,15 @@ export const checkout: RequestHandler = async (req, res) => {
   res.status(201).json({ success: true, message: 'Đặt hàng thành công', data });
 };
 
+export const shippingMethods: RequestHandler = async (_req, res) => {
+  const data = await orderService.listShippingMethods();
+  res.status(200).json({
+    success: true,
+    message: 'Lấy phương thức vận chuyển thành công',
+    data,
+  });
+};
+
 export const myOrders: RequestHandler = async (req, res) => {
   const data = await orderService.listCustomerOrders(
     requireUser(req.user).id,

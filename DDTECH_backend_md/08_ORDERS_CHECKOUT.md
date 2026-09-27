@@ -78,6 +78,7 @@ ROLLBACK
 Client có thể gửi:
 
 - addressId hoặc thông tin nhận hàng
+- cartItemIds của các sản phẩm được chọn trong giỏ
 - shippingMethodId
 - promotionCode
 - note

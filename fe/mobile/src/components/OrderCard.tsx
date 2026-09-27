@@ -18,7 +18,7 @@ export interface OrderCardProps {
   code: string;
   date: string;
   productName: string;
-  quantity: number;
+  quantity?: number;
   statusLabel: string;
   total: number;
   imageSource?: ImageSourcePropType;
@@ -67,7 +67,9 @@ export function OrderCard({
         <View style={styles.productContent}>
           <Text numberOfLines={2} style={styles.productName}>{productName}</Text>
           {productSummary ? <Text numberOfLines={1} style={styles.summary}>{productSummary}</Text> : null}
-          <Text style={styles.quantity}>x{quantity}</Text>
+          {typeof quantity === 'number' && quantity > 0 ? (
+            <Text style={styles.quantity}>x{quantity}</Text>
+          ) : null}
         </View>
       </View>
       <View style={styles.footer}>

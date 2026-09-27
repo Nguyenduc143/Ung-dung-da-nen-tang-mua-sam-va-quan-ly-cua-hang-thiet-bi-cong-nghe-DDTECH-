@@ -66,7 +66,13 @@ export function AddressCard({
             <Ionicons color={colors.textSecondary} name="create-outline" size={24} />
           </Pressable>
         ) : null}
-        {onPress ? <Ionicons color={colors.textMuted} name="chevron-forward" size={22} /> : null}
+        {onPress ? (
+          <Ionicons
+            color={selected ? colors.primary : colors.textMuted}
+            name={selected ? 'checkmark-circle' : 'chevron-forward'}
+            size={selected ? 24 : 22}
+          />
+        ) : null}
       </View>
     </Pressable>
   );
