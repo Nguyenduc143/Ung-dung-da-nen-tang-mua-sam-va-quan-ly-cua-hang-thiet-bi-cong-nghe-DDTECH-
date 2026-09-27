@@ -4,6 +4,7 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   FlatList,
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,9 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryCard, ErrorState, SearchBar } from '@/components';
+import { getApiErrorMessage } from '@/api/axiosClient';
 import { useHomeData } from '@/hooks';
 import type { CustomerStackParamList, MainTabParamList } from '@/navigation/types';
-import { useAuthStore, useBadgeStore } from '@/stores';
+import { useAuthStore, useBadgeStore, useFavoriteStore } from '@/stores';
 import { colors, radius, spacing, typography } from '@/theme';
 import type { ProductListItem } from '@/types';
 import { getProductDiscountPercent } from '@/utils';
@@ -47,6 +49,13 @@ export function HomeScreen({ navigation }: Props) {
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<CustomerStackParamList>>();
   const user = useAuthStore((state) => state.user);
   const notificationCount = useBadgeStore((state) => state.unreadNotificationCount);
+  const favorites = useFavoriteStore((state) => state.favorites);
+  const favoriteProductIds = useMemo(
+    () => new Set(favorites.map((item) => item.product.id)),
+    [favorites],
+  );
+  const updatingFavoriteIds = useFavoriteStore((state) => state.updatingProductIds);
+  const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
   const {
     categories,
     featuredProducts,
@@ -86,6 +95,17 @@ export function HomeScreen({ navigation }: Props) {
 
   const openProduct = (product: ProductListItem) => {
     rootNavigation?.navigate('ProductDetail', { productId: product.id });
+  };
+
+  const handleToggleFavorite = async (productId: number) => {
+    try {
+      await toggleFavorite(productId);
+    } catch (favoriteError) {
+      Alert.alert(
+        'Không thể cập nhật yêu thích',
+        getApiErrorMessage(favoriteError, 'Vui lòng thử lại.'),
+      );
+    }
   };
 
   return (
@@ -188,6 +208,9 @@ export function HomeScreen({ navigation }: Props) {
             <HomeProductSection
               badgeFallback="Nổi bật"
               emptyMessage="Chưa có sản phẩm nổi bật."
+              favoriteProductIds={favoriteProductIds}
+              updatingFavoriteIds={updatingFavoriteIds}
+              onToggleFavorite={(productId) => void handleToggleFavorite(productId)}
               onProductPress={openProduct}
               onSeeAll={() => rootNavigation?.navigate('ProductList', {
                 featured: true,
@@ -199,6 +222,9 @@ export function HomeScreen({ navigation }: Props) {
             <HomeProductSection
               badgeFallback="Mới"
               emptyMessage="Chưa có sản phẩm mới."
+              favoriteProductIds={favoriteProductIds}
+              updatingFavoriteIds={updatingFavoriteIds}
+              onToggleFavorite={(productId) => void handleToggleFavorite(productId)}
               onProductPress={openProduct}
               onSeeAll={() => rootNavigation?.navigate('ProductList', {
                 isNew: true,
@@ -211,6 +237,9 @@ export function HomeScreen({ navigation }: Props) {
             <HomeProductSection
               badgeFallback="Bán chạy"
               emptyMessage="Chưa có dữ liệu sản phẩm bán chạy."
+              favoriteProductIds={favoriteProductIds}
+              updatingFavoriteIds={updatingFavoriteIds}
+              onToggleFavorite={(productId) => void handleToggleFavorite(productId)}
               onProductPress={openProduct}
               onSeeAll={() => rootNavigation?.navigate('ProductList', {
                 sort: 'best_selling',
@@ -221,6 +250,9 @@ export function HomeScreen({ navigation }: Props) {
             />
             <HomeProductSection
               emptyMessage="Hiện chưa có sản phẩm khuyến mãi."
+              favoriteProductIds={favoriteProductIds}
+              updatingFavoriteIds={updatingFavoriteIds}
+              onToggleFavorite={(productId) => void handleToggleFavorite(productId)}
               onProductPress={openProduct}
               products={promotionalProducts}
               title="Khuyến mãi"

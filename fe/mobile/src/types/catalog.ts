@@ -50,7 +50,7 @@ export interface CatalogReference {
   slug: string;
 }
 
-export interface ProductListItem {
+export interface Product {
   id: number;
   categoryId: number;
   brandId: number | null;
@@ -76,8 +76,76 @@ export interface ProductListItem {
   primaryImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProductListItem extends Product {
   category: CatalogReference;
   brand: CatalogReference | null;
+}
+
+export interface ProductVariant {
+  id: number;
+  productId: number;
+  sku: string;
+  variantName: string;
+  attributes: Record<string, unknown> | null;
+  price: number;
+  salePrice: number | null;
+  stock: number;
+  soldCount: number;
+  imageUrl: string | null;
+  sortOrder: number;
+  status: ProductStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductImage {
+  id: number;
+  productId: number;
+  variantId: number | null;
+  imageUrl: string;
+  altText: string | null;
+  isPrimary: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface ProductDetailData {
+  product: Product;
+  category: CatalogReference;
+  brand: CatalogReference | null;
+  specifications: Record<string, unknown> | null;
+  variants: ProductVariant[];
+  images: ProductImage[];
+}
+
+export interface ProductReview {
+  id: number;
+  user: {
+    id: number;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+  product: {
+    id: number;
+    name: string;
+  };
+  orderId: number;
+  rating: number;
+  comment: string | null;
+  images: string[] | null;
+  isVerifiedPurchase: boolean;
+  adminReply: string | null;
+  repliedAt: string | null;
+  status: 'PENDING' | 'APPROVED' | 'HIDDEN';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductReviewData {
+  reviews: ProductReview[];
+  pagination: ProductPagination;
 }
 
 export interface ProductPagination {

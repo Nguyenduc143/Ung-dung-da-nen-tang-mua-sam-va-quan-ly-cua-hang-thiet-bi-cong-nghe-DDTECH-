@@ -11,6 +11,7 @@ const { signAccessToken } = require('../dist/utils/token');
   const promotions = [];
   let categoryId;
   let productId;
+  let customerCartItemId;
   let usageOrderId;
   let server;
 
@@ -36,10 +37,11 @@ const { signAccessToken } = require('../dist/utils/token');
     productId = productResult.insertId;
     for (const userId of users.slice(0, 2)) {
       const [cartResult] = await pool.execute('INSERT INTO carts (user_id) VALUES (?)', [userId]);
-      await pool.execute(
+      const [cartItemResult] = await pool.execute(
         'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, 2)',
         [cartResult.insertId, productId],
       );
+      if (userId === users[0]) customerCartItemId = cartItemResult.insertId;
     }
 
     server = app.listen(0, '127.0.0.1');
@@ -109,6 +111,9 @@ const { signAccessToken } = require('../dist/utils/token');
     await request('POST', '/promotions/validate', {
       code: percent.code,
     }, undefined, 401);
+    await request('POST', '/promotions/available', {
+      cartItemIds: [customerCartItemId],
+    }, undefined, 401);
     await request('POST', '/promotions/validate', {
       code: percent.code,
       subtotal: 1,
@@ -119,6 +124,19 @@ const { signAccessToken } = require('../dist/utils/token');
     assert.equal(validated.subtotal, 1600);
     assert.equal(validated.discountAmount, 100);
     assert.equal(validated.totalAfterDiscount, 1500);
+    const selectedValidated = await request('POST', '/promotions/validate', {
+      code: percent.code,
+      cartItemIds: [customerCartItemId],
+    }, customerToken);
+    assert.equal(selectedValidated.subtotal, 1600);
+    const available = await request('POST', '/promotions/available', {
+      cartItemIds: [customerCartItemId],
+    }, customerToken);
+    assert.ok(available.promotions.some((item) => item.promotion.id === percent.id));
+    await request('POST', '/promotions/validate', {
+      code: percent.code,
+      cartItemIds: [9007199254740991],
+    }, customerToken, 422);
 
     const fixed = await request('POST', '/admin/promotions', {
       code: `${prefix}-fixed`,

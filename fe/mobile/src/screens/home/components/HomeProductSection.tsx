@@ -17,16 +17,22 @@ interface HomeProductSectionProps {
   title: string;
   badgeFallback?: string;
   onProductPress: (product: ProductListItem) => void;
+  favoriteProductIds: ReadonlySet<number>;
+  updatingFavoriteIds: ReadonlySet<number>;
+  onToggleFavorite: (productId: number) => void;
   onSeeAll?: () => void;
 }
 
 export function HomeProductSection({
   badgeFallback,
   emptyMessage,
+  favoriteProductIds,
   products,
   title,
   onProductPress,
+  onToggleFavorite,
   onSeeAll,
+  updatingFavoriteIds,
 }: HomeProductSectionProps) {
   return (
     <View style={styles.section}>
@@ -44,8 +50,11 @@ export function HomeProductSection({
               <ProductCard
                 badgeText={discount > 0 ? `-${discount}%` : badgeFallback}
                 imageSource={getProductImageSource(item)}
+                isFavorite={favoriteProductIds.has(item.id)}
+                isTogglingFavorite={updatingFavoriteIds.has(item.id)}
                 name={item.name}
                 onPress={() => onProductPress(item)}
+                onToggleFavorite={() => onToggleFavorite(item.id)}
                 originalPrice={getProductOriginalPrice(item)}
                 price={getProductPrice(item)}
                 rating={item.ratingAvg}

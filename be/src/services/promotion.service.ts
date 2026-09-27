@@ -104,10 +104,20 @@ export const validateForCheckout = async (
   connection,
 );
 
-const getCartSubtotalCents = async (userId: number): Promise<bigint> => {
+const getCartSubtotalCents = async (
+  userId: number,
+  cartItemIds?: number[],
+): Promise<bigint> => {
   const cart = await cartRepository.findCartByUser(userId);
   if (!cart) throw new AppError(409, 'Giỏ hàng đang trống');
-  const items = await cartItemRepository.listCartItems(cart.id);
+  const allItems = await cartItemRepository.listCartItems(cart.id);
+  const selectedIds = cartItemIds ? new Set(cartItemIds) : null;
+  const items = selectedIds
+    ? allItems.filter((item) => selectedIds.has(item.id))
+    : allItems;
+  if (selectedIds && items.length !== selectedIds.size) {
+    throw new AppError(422, 'Danh sách sản phẩm thanh toán không hợp lệ');
+  }
   if (items.length === 0) throw new AppError(409, 'Giỏ hàng đang trống');
 
   let subtotalCents = 0n;
@@ -130,8 +140,12 @@ const getCartSubtotalCents = async (userId: number): Promise<bigint> => {
   return subtotalCents;
 };
 
-export const validateCartPromotion = async (userId: number, code: string) => {
-  const subtotalCents = await getCartSubtotalCents(userId);
+export const validateCartPromotion = async (
+  userId: number,
+  code: string,
+  cartItemIds?: number[],
+) => {
+  const subtotalCents = await getCartSubtotalCents(userId, cartItemIds);
   const result = await ensurePromotionCanBeUsed(
     await promotionRepository.findByCode(code),
     userId,
@@ -143,6 +157,40 @@ export const validateCartPromotion = async (userId: number, code: string) => {
     discountAmount: centsToNumber(result.discountCents),
     totalAfterDiscount: centsToNumber(subtotalCents - result.discountCents),
   };
+};
+
+export const listAvailableCartPromotions = async (
+  userId: number,
+  cartItemIds?: number[],
+) => {
+  const subtotalCents = await getCartSubtotalCents(userId, cartItemIds);
+  const now = Date.now();
+  const promotions = await promotionRepository.listPromotions();
+  const available = [];
+
+  for (const promotion of promotions) {
+    if (
+      promotion.status !== 'ACTIVE'
+      || promotion.startDate.getTime() > now
+      || promotion.endDate.getTime() < now
+      || (promotion.usageLimit !== null && promotion.usedCount >= promotion.usageLimit)
+      || subtotalCents < moneyToCents(promotion.minOrderValue)
+    ) continue;
+
+    const usageCount = await promotionRepository.countUserUsages(promotion.id, userId);
+    if (usageCount >= promotion.usageLimitPerUser) continue;
+
+    const discountCents = calculateDiscountCents(promotion, subtotalCents);
+    available.push({
+      promotion: toPromotionResponse(promotion),
+      subtotal: centsToNumber(subtotalCents),
+      discountAmount: centsToNumber(discountCents),
+      totalAfterDiscount: centsToNumber(subtotalCents - discountCents),
+    });
+  }
+
+  available.sort((left, right) => right.discountAmount - left.discountAmount);
+  return { promotions: available };
 };
 
 export const listPromotions = async () => ({

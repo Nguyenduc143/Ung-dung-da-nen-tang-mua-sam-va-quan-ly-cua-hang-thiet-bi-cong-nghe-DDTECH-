@@ -33,9 +33,13 @@ export type CustomerStackParamList = {
   ProductDetail: { productId: number };
   Search: { query?: string } | undefined;
   Favorites: undefined;
-  AddressList: { selectionMode?: boolean } | undefined;
+  AddressList: {
+    selectionMode?: boolean;
+    selectedAddressId?: number;
+    cartItemIds?: number[];
+  } | undefined;
   AddressForm: { addressId?: number } | undefined;
-  Checkout: { addressId?: number } | undefined;
+  Checkout: { addressId?: number; cartItemIds?: number[] } | undefined;
   OrderDetail: { orderId: number };
   Notifications: undefined;
   Reviews: { productId: number };

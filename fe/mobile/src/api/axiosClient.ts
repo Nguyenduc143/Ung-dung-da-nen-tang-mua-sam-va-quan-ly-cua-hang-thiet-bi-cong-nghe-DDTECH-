@@ -4,7 +4,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 
-import { API_TIMEOUT_MS } from '@/constants';
+import { API_BASE_URL, API_TIMEOUT_MS } from '@/constants';
 import type {
   ApiErrorResponse,
   ApiResponse,
@@ -29,29 +29,19 @@ interface RetriableRequestConfig extends InternalAxiosRequestConfig {
   skipAuthRefresh?: boolean;
 }
 
-const normalizeApiUrl = (value: string | undefined): string => {
-  const normalizedValue = value?.trim().replace(/\/+$/, '');
-  if (!normalizedValue || !/^https?:\/\/[^\s]+$/i.test(normalizedValue)) {
-    throw new Error('Thiếu hoặc sai biến môi trường EXPO_PUBLIC_API_URL');
-  }
-  return normalizedValue;
-};
-
-const apiUrl = normalizeApiUrl(process.env.EXPO_PUBLIC_API_URL);
-
 const defaultHeaders = {
   Accept: 'application/json',
   'Content-Type': 'application/json',
 };
 
 export const apiClient = axios.create({
-  baseURL: apiUrl,
+  baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
   headers: defaultHeaders,
 });
 
 const refreshClient = axios.create({
-  baseURL: apiUrl,
+  baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
   headers: defaultHeaders,
 });

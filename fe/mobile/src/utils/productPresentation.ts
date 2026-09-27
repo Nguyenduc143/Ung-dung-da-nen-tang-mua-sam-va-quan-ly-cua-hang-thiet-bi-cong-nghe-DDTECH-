@@ -18,6 +18,14 @@ export const getProductDiscountPercent = (product: ProductListItem): number => {
   return Math.round(((product.price - product.salePrice) / product.price) * 100);
 };
 
+export const getProductBadgeText = (product: ProductListItem): string | undefined => {
+  const discount = getProductDiscountPercent(product);
+  if (discount > 0) return `-${discount}%`;
+  if (product.isNew) return 'Mới';
+  if (product.isFeatured) return 'Nổi bật';
+  return undefined;
+};
+
 export const getProductImageSource = (product: ProductListItem) => {
   const imageUrl = resolveMediaUrl(product.primaryImageUrl);
   return imageUrl ? { uri: imageUrl } : undefined;

@@ -529,6 +529,18 @@ BEGIN
      ORDER BY product_id, variant_key FOR UPDATE;
 END$$
 
+DROP PROCEDURE IF EXISTS sp_order_listselectedcartitemsforupdate_1$$
+CREATE PROCEDURE sp_order_listselectedcartitemsforupdate_1(IN p_1 LONGTEXT, IN p_2 JSON)
+SQL SECURITY INVOKER
+BEGIN
+  SELECT ci.id, ci.product_id AS productId, ci.variant_id AS variantId, ci.quantity
+    FROM cart_items ci
+    WHERE ci.cart_id = p_1
+      AND JSON_CONTAINS(p_2, CAST(ci.id AS JSON), '$')
+    ORDER BY ci.id
+    FOR UPDATE;
+END$$
+
 DROP PROCEDURE IF EXISTS sp_order_findproductforupdate_1$$
 CREATE PROCEDURE sp_order_findproductforupdate_1(IN p_1 LONGTEXT)
 SQL SECURITY INVOKER
@@ -577,6 +589,19 @@ BEGIN
             estimated_days_max AS estimatedDaysMax
      FROM shipping_methods
      WHERE id = p_1 AND status = 'ACTIVE' LIMIT 1 FOR UPDATE;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_listactiveshippingmethods_1$$
+CREATE PROCEDURE sp_order_listactiveshippingmethods_1()
+SQL SECURITY INVOKER
+BEGIN
+  SELECT id, code, name, description, base_fee AS baseFee,
+         free_threshold AS freeThreshold,
+         estimated_days_min AS estimatedDaysMin,
+         estimated_days_max AS estimatedDaysMax
+    FROM shipping_methods
+   WHERE status = 'ACTIVE'
+   ORDER BY sort_order ASC, id ASC;
 END$$
 
 DROP PROCEDURE IF EXISTS sp_order_lockpromotion_1$$
@@ -701,6 +726,17 @@ BEGIN
   INSERT INTO order_status_history
        (order_id, from_status, to_status, changed_by, note)
      VALUES (p_1, p_2, p_3, p_4, p_5);
+  SELECT ROW_COUNT() AS affectedRows, LAST_INSERT_ID() AS insertId;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_clearselectedcartitems_1$$
+CREATE PROCEDURE sp_order_clearselectedcartitems_1(IN p_1 LONGTEXT, IN p_2 JSON)
+SQL SECURITY INVOKER
+BEGIN
+  DELETE ci
+    FROM cart_items ci
+    WHERE ci.cart_id = p_1
+      AND JSON_CONTAINS(p_2, CAST(ci.id AS JSON), '$');
   SELECT ROW_COUNT() AS affectedRows, LAST_INSERT_ID() AS insertId;
 END$$
 

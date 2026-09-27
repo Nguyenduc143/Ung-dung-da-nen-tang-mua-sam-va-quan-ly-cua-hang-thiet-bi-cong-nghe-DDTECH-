@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   StyleSheet,
@@ -20,6 +21,7 @@ export interface ProductCardProps {
   badgeText?: string;
   disabled?: boolean;
   isFavorite?: boolean;
+  isTogglingFavorite?: boolean;
   onPress?: () => void;
   onToggleFavorite?: () => void;
   originalPrice?: number | null;
@@ -35,6 +37,7 @@ export function ProductCard({
   badgeText,
   disabled = false,
   isFavorite = false,
+  isTogglingFavorite = false,
   onPress,
   onToggleFavorite,
   originalPrice,
@@ -69,17 +72,23 @@ export function ProductCard({
           <Pressable
             accessibilityLabel={isFavorite ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
             accessibilityRole="button"
+            accessibilityState={{ busy: isTogglingFavorite, disabled: isTogglingFavorite }}
+            disabled={isTogglingFavorite}
             onPress={(event) => {
               event.stopPropagation();
               onToggleFavorite();
             }}
             style={({ pressed }) => [styles.favoriteButton, pressed && styles.pressed]}
           >
-            <Ionicons
-              color={isFavorite ? colors.primary : colors.textPrimary}
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={22}
-            />
+            {isTogglingFavorite ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : (
+              <Ionicons
+                color={isFavorite ? colors.primary : colors.textPrimary}
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={22}
+              />
+            )}
           </Pressable>
         ) : null}
       </View>

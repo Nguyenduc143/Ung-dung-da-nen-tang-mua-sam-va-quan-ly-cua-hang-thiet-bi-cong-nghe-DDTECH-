@@ -82,7 +82,7 @@ export function CategoryTree({ categories, onCategoryPress }: CategoryTreeProps)
 
   return (
     <>
-      <Text style={styles.heading}>Danh mục cha</Text>
+      <Text style={styles.heading}>Danh mục sản phẩm</Text>
       <View style={styles.parentGrid}>
         {roots.map((category) => (
           <CategoryCard

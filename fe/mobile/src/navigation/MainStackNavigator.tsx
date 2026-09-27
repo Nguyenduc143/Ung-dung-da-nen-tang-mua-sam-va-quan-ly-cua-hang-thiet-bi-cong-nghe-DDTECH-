@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import {
@@ -16,12 +17,21 @@ import {
   WriteReviewScreen,
 } from '@/screens';
 import { colors, fontWeights } from '@/theme';
+import { useCartStore, useFavoriteStore } from '@/stores';
 import { MainTabNavigator } from './MainTabNavigator';
 import type { CustomerStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
 export function MainStackNavigator() {
+  const loadFavorites = useFavoriteStore((state) => state.loadFavorites);
+  const loadCart = useCartStore((state) => state.loadCart);
+
+  useEffect(() => {
+    void loadFavorites().catch(() => undefined);
+    void loadCart().catch(() => undefined);
+  }, [loadCart, loadFavorites]);
+
   return (
     <Stack.Navigator
       initialRouteName="MainTabs"
