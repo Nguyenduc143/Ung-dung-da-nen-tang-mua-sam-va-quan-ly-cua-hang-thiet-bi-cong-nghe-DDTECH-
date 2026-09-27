@@ -1,2 +1,1 @@
-// Notification screen exports.
-export {};
+export * from './NotificationsScreen';

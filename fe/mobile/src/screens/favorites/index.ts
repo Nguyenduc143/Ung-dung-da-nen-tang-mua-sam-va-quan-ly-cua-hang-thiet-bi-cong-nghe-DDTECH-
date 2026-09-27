@@ -1,2 +1,1 @@
-// Favorite screen exports.
-export {};
+export * from './FavoritesScreen';

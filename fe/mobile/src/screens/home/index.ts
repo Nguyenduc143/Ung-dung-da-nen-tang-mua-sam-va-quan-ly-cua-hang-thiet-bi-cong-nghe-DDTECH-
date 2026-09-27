@@ -1,2 +1,1 @@
-// Home screen exports.
-export {};
+export * from './HomeScreen';
