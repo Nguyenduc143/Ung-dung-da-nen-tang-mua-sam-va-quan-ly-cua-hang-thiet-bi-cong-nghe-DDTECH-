@@ -229,12 +229,32 @@ export const listCustomerOrders = async (userId: number, query: CustomerOrderQue
   };
 };
 
+export const listShippingMethods = async () => ({
+  shippingMethods: (await orderRepository.listActiveShippingMethods()).map((method) => ({
+    id: method.id,
+    code: method.code,
+    name: method.name,
+    description: method.description,
+    baseFee: Number(method.baseFee),
+    freeThreshold: method.freeThreshold === null ? null : Number(method.freeThreshold),
+    estimatedDaysMin: method.estimatedDaysMin,
+    estimatedDaysMax: method.estimatedDaysMax,
+  })),
+});
+
 export const checkout = async (userId: number, input: CheckoutInput) => {
   const created = await withTransaction(async (connection) => {
     const cartId = await orderRepository.findCartForUpdate(connection, userId);
     if (cartId === null) throw new AppError(409, 'Giỏ hàng đang trống');
-    const cartItems = await orderRepository.listCartItemsForUpdate(connection, cartId);
+    const cartItems = await orderRepository.listCartItemsForUpdate(
+      connection,
+      cartId,
+      input.cartItemIds,
+    );
     if (cartItems.length === 0) throw new AppError(409, 'Giỏ hàng đang trống');
+    if (input.cartItemIds && cartItems.length !== input.cartItemIds.length) {
+      throw new AppError(422, 'Danh sách sản phẩm thanh toán không hợp lệ');
+    }
 
     const receiver = await getReceiverSnapshot(connection, userId, input);
     const items: CheckoutItemSnapshot[] = [];
@@ -347,7 +367,7 @@ export const checkout = async (userId: number, input: CheckoutInput) => {
       changedBy: userId,
       note: 'Khách đặt hàng',
     });
-    await orderRepository.clearCartItems(connection, cartId);
+    await orderRepository.clearCartItems(connection, cartId, input.cartItemIds);
     await orderRepository.createNotification(connection, {
       userId,
       title: 'Đặt hàng thành công',

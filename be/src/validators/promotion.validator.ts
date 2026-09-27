@@ -66,8 +66,18 @@ const validateRules = (
   }
 };
 
+const cartItemIdsSchema = z
+  .array(promotionIdSchema)
+  .min(1, 'Cần chọn ít nhất một sản phẩm để áp dụng mã khuyến mãi')
+  .max(100)
+  .refine((ids) => new Set(ids).size === ids.length, 'Danh sách sản phẩm bị trùng');
+
 export const validatePromotionSchema = z
-  .object({ code: promotionCodeSchema })
+  .object({ code: promotionCodeSchema, cartItemIds: cartItemIdsSchema.optional() })
+  .strict();
+
+export const availablePromotionsSchema = z
+  .object({ cartItemIds: cartItemIdsSchema.optional() })
   .strict();
 
 export const createPromotionSchema = z
@@ -108,5 +118,6 @@ export const updatePromotionSchema = z
   .superRefine(validateRules);
 
 export type ValidatePromotionInput = z.infer<typeof validatePromotionSchema>;
+export type AvailablePromotionsInput = z.infer<typeof availablePromotionsSchema>;
 export type CreatePromotionInput = z.infer<typeof createPromotionSchema>;
 export type UpdatePromotionInput = z.infer<typeof updatePromotionSchema>;

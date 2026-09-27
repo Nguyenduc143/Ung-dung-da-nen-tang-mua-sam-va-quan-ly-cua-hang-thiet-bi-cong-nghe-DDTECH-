@@ -6,6 +6,7 @@ import * as promotionService from '../services/promotion.service';
 import { AppError } from '../utils/app-error';
 import { promotionIdSchema } from '../validators/promotion.validator';
 import type {
+  AvailablePromotionsInput,
   CreatePromotionInput,
   UpdatePromotionInput,
   ValidatePromotionInput,
@@ -26,8 +27,25 @@ const parse = <T>(schema: ZodType<T>, value: unknown): T => {
 
 export const validate: RequestHandler = async (req, res) => {
   const input = req.body as ValidatePromotionInput;
-  const data = await promotionService.validateCartPromotion(requireUser(req.user).id, input.code);
+  const data = await promotionService.validateCartPromotion(
+    requireUser(req.user).id,
+    input.code,
+    input.cartItemIds,
+  );
   res.status(200).json({ success: true, message: 'Mã khuyến mãi hợp lệ', data });
+};
+
+export const available: RequestHandler = async (req, res) => {
+  const input = req.body as AvailablePromotionsInput;
+  const data = await promotionService.listAvailableCartPromotions(
+    requireUser(req.user).id,
+    input.cartItemIds,
+  );
+  res.status(200).json({
+    success: true,
+    message: 'Lấy voucher khả dụng thành công',
+    data,
+  });
 };
 
 export const list: RequestHandler = async (_req, res) => {

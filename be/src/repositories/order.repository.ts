@@ -52,11 +52,20 @@ export interface ShippingMethodRecord extends RowDataPacket {
   id: number;
   code: string;
   name: string;
+  description: string | null;
   baseFee: string | number;
   freeThreshold: string | number | null;
   estimatedDaysMin: number;
   estimatedDaysMax: number;
 }
+
+export const listActiveShippingMethods = async (): Promise<ShippingMethodRecord[]> => {
+  const [rows] = await executeProcedure<ShippingMethodRecord[]>(
+    pool,
+    'sp_order_listactiveshippingmethods_1',
+  );
+  return rows;
+};
 
 export interface OrderRecord extends RowDataPacket {
   id: number;
@@ -121,7 +130,16 @@ export const findCartForUpdate = async (
 export const listCartItemsForUpdate = async (
   connection: PoolConnection,
   cartId: number,
+  cartItemIds?: number[],
 ): Promise<CheckoutCartItemRecord[]> => {
+  if (cartItemIds) {
+    const [rows] = await executeProcedure<CheckoutCartItemRecord[]>(
+      connection,
+      'sp_order_listselectedcartitemsforupdate_1',
+      [cartId, JSON.stringify(cartItemIds)],
+    );
+    return rows;
+  }
   const [rows] = await executeProcedure<CheckoutCartItemRecord[]>(connection, 'sp_order_listcartitemsforupdate_1', [cartId]);
   return rows;
 };
@@ -275,7 +293,17 @@ export const createInventoryTransaction = async (
 export const clearCartItems = async (
   connection: PoolConnection,
   cartId: number,
+  cartItemIds?: number[],
 ): Promise<void> => {
+  if (cartItemIds) {
+    await executeProcedure(
+      connection,
+      'sp_order_clearselectedcartitems_1',
+      [cartId, JSON.stringify(cartItemIds)],
+    );
+    await executeProcedure(connection, 'sp_order_clearcartitems_2', [cartId]);
+    return;
+  }
   await executeProcedure(connection, 'sp_order_clearcartitems_1', [cartId]);
   await executeProcedure(connection, 'sp_order_clearcartitems_2', [cartId]);
 };

@@ -16,6 +16,12 @@ export const checkoutSchema = z
     district: z.string().trim().min(2).max(100).optional(),
     ward: z.string().trim().min(1).max(100).nullable().optional(),
     addressLine: z.string().trim().min(3).max(255).optional(),
+    cartItemIds: z
+      .array(orderIdSchema)
+      .min(1, 'Cần chọn ít nhất một sản phẩm để thanh toán')
+      .max(100)
+      .refine((ids) => new Set(ids).size === ids.length, 'Danh sách sản phẩm bị trùng')
+      .optional(),
     shippingMethodId: orderIdSchema,
     promotionCode: z.string().trim().min(1).max(50).toUpperCase().nullable().optional(),
     note: z.string().trim().max(500).nullable().optional(),

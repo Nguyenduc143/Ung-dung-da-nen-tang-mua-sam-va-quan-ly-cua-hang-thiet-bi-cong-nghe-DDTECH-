@@ -148,8 +148,13 @@ const { signAccessToken } = require('../dist/utils/token');
     }
 
     await request('POST', '/orders', {}, undefined, 401);
+    await request('GET', '/orders/shipping-methods', undefined, undefined, 401);
     await request('GET', '/admin/orders', undefined, undefined, 401);
     await request('GET', '/admin/orders', undefined, customerToken, 403);
+    const shippingMethods = await request(
+      'GET', '/orders/shipping-methods', undefined, customerToken,
+    );
+    assert.ok(shippingMethods.shippingMethods.some((method) => method.id === shippingMethodId));
     await request('POST', '/orders', {
       addressId: secondAddressId,
       shippingMethodId,
@@ -158,6 +163,11 @@ const { signAccessToken } = require('../dist/utils/token');
       addressId: firstAddressId,
       shippingMethodId: 9007199254740991,
     }, customerToken, 404);
+    await request('POST', '/orders', {
+      addressId: firstAddressId,
+      cartItemIds: [],
+      shippingMethodId,
+    }, customerToken, 422);
 
     const firstOrderData = await request('POST', '/orders', {
       addressId: firstAddressId,
@@ -235,6 +245,39 @@ const { signAccessToken } = require('../dist/utils/token');
     assert.equal(releasedUsageRows[0].total, 0);
     const [releasedPromotionRows] = await pool.execute('SELECT used_count FROM promotions WHERE id = ?', [promotionId]);
     assert.equal(releasedPromotionRows[0].used_count, 0);
+
+    await pool.execute(
+      `INSERT INTO cart_items (cart_id, product_id, variant_id, quantity)
+       VALUES (?, ?, NULL, 1), (?, ?, ?, 1)`,
+      [cartId, plainProductId, cartId, variantProductId, variantId],
+    );
+    const [partialCartRows] = await pool.execute(
+      'SELECT id, product_id AS productId FROM cart_items WHERE cart_id = ? ORDER BY id',
+      [cartId],
+    );
+    const selectedPlainItem = partialCartRows.find((item) => item.productId === plainProductId);
+    const unselectedVariantItem = partialCartRows.find((item) => item.productId === variantProductId);
+    const partialOrderData = await request('POST', '/orders', {
+      addressId: firstAddressId,
+      cartItemIds: [selectedPlainItem.id],
+      shippingMethodId,
+      paymentMethod: 'COD',
+    }, customerToken, 201);
+    orders.push(partialOrderData.order.id);
+    assert.equal(partialOrderData.items.length, 1);
+    assert.equal(partialOrderData.items[0].productId, plainProductId);
+    const [remainingCartRows] = await pool.execute(
+      'SELECT id FROM cart_items WHERE cart_id = ? ORDER BY id',
+      [cartId],
+    );
+    assert.deepEqual(remainingCartRows.map((item) => item.id), [unselectedVariantItem.id]);
+    await request(
+      'PATCH',
+      `/orders/${partialOrderData.order.id}/cancel`,
+      { reason: 'Dọn đơn kiểm thử thanh toán một phần' },
+      customerToken,
+    );
+    await pool.execute('DELETE FROM cart_items WHERE cart_id = ?', [cartId]);
 
     await pool.execute('UPDATE products SET stock = 1, sold_count = 0 WHERE id = ?', [plainProductId]);
     const [otherCartResult] = await pool.execute('INSERT INTO carts (user_id) VALUES (?)', [users[1]]);

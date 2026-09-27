@@ -52,6 +52,17 @@ const { signAccessToken } = require('../dist/utils/token');
       return json.data;
     }
 
+    async function requestForm(path, formData, token, expected = 201) {
+      const response = await fetch(base + path, {
+        method: 'POST',
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const json = await response.json();
+      assert.equal(response.status, expected, `POST ${path}: ${JSON.stringify(json)}`);
+      return json.data;
+    }
+
     await request('GET', '/products');
     await request('POST', '/admin/products', {}, undefined, 401);
     await request('POST', '/admin/products', {}, customer, 403);
@@ -120,6 +131,24 @@ const { signAccessToken } = require('../dist/utils/token');
     const imageTwoData = await request('POST', `/admin/products/${product.id}/images`, {
       imageUrl: 'https://example.com/two.png', isPrimary: true,
     }, admin, 201);
+    const uploadForm = new FormData();
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
+    uploadForm.append('image', new Blob([png], { type: 'image/png' }), 'test-product.png');
+    uploadForm.append('altText', 'Ảnh tải từ máy');
+    uploadForm.append('sortOrder', '2');
+    const uploadedImageData = await requestForm(
+      `/admin/products/${product.id}/images/upload`,
+      uploadForm,
+      admin,
+    );
+    assert.match(uploadedImageData.image.imageUrl, /\/uploads\/products\/product-.*\.png$/);
+    const uploadedFileResponse = await fetch(uploadedImageData.image.imageUrl);
+    assert.equal(uploadedFileResponse.status, 200);
+    assert.equal(uploadedFileResponse.headers.get('content-type'), 'image/png');
+    assert.deepEqual(Buffer.from(await uploadedFileResponse.arrayBuffer()), png);
     detail = await request('GET', `/products/${product.id}`);
     assert.equal(detail.images.filter((image) => image.isPrimary).length, 1);
     assert.equal(detail.images.find((image) => image.isPrimary).id, imageTwoData.image.id);
@@ -144,6 +173,8 @@ const { signAccessToken } = require('../dist/utils/token');
     assert.equal(filtered.pagination.page, 1);
 
     await request('DELETE', `/admin/product-images/${imageTwoData.image.id}`, undefined, admin);
+    await request('DELETE', `/admin/product-images/${uploadedImageData.image.id}`, undefined, admin);
+    assert.equal((await fetch(uploadedImageData.image.imageUrl)).status, 404);
     detail = await request('GET', `/products/${product.id}`);
     assert.equal(detail.images.find((image) => image.id === imageOneData.image.id).isPrimary, true);
     await request('PATCH', `/admin/product-images/${imageOneData.image.id}/primary`, undefined, admin);

@@ -9,6 +9,7 @@ checkoutSchema
 import { adminOrderRouter } from './admin-order.routes';
 export const orderRouter = Router();
 orderRouter.use(authenticate);
+orderRouter.get('/shipping-methods', orderController.shippingMethods);
 orderRouter.post('/', validateBody(checkoutSchema), orderController.checkout);
 orderRouter.get('/my-orders', orderController.myOrders);
 orderRouter.get('/:id', orderController.customerDetail);
