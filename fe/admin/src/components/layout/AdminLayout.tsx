@@ -1,5 +1,4 @@
 import {
-  BellOutlined,
   HomeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -8,7 +7,6 @@ import {
 } from '@ant-design/icons';
 import {
   Avatar,
-  Badge,
   Breadcrumb,
   Button,
   Dropdown,
@@ -22,12 +20,15 @@ import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { adminMenuItems, adminNavigation, getRouteTitle } from '../../config/adminNavigation';
+import { useAdminSocket } from '../../hooks/useAdminSocket';
 import { useAuthStore } from '../../stores/authStore';
+import { NotificationHeaderDropdown } from '../notifications/NotificationHeaderDropdown';
 
 const { Header, Content, Sider } = Layout;
 const { Text } = Typography;
 
 export function AdminLayout() {
+  useAdminSocket();
   const [collapsed, setCollapsed] = useState(false);
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
@@ -122,11 +123,7 @@ export function AdminLayout() {
           </Space>
 
           <Space size={10}>
-            <Link className="notification-button" to="/notifications" aria-label="Mở thông báo">
-              <Badge dot={false}>
-                <BellOutlined />
-              </Badge>
-            </Link>
+            <NotificationHeaderDropdown />
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
               <Button className="user-menu-button" type="text">
                 <Avatar size={32} src={user?.avatarUrl} icon={<UserOutlined />} />

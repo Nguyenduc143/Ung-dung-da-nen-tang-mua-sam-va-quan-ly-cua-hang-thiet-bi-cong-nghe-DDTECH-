@@ -30,8 +30,11 @@ import { useCallback, useMemo, useState, useEffect } from 'react';
 import * as categoryApi from '../api/categoryApi';
 import { getApiErrorMessage } from '../api/axiosClient';
 import { CategoryAttributesDrawer } from '../components/categories/CategoryAttributesDrawer';
-import { CategoryFormModal } from '../components/categories/CategoryFormModal';
-import type { Category, CategoryInput, CatalogStatus } from '../types/catalog';
+import {
+  CategoryFormModal,
+  type CategoryFormSubmission,
+} from '../components/categories/CategoryFormModal';
+import type { Category, CatalogStatus } from '../types/catalog';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -91,14 +94,22 @@ export function CategoriesPage() {
     setFormOpen(true);
   };
 
-  const handleSubmit = async (input: CategoryInput) => {
+  const handleSubmit = async ({ input, file }: CategoryFormSubmission) => {
     setSubmitting(true);
     try {
       if (editingCategory) {
-        await categoryApi.updateCategory(editingCategory.id, input);
+        if (file) {
+          await categoryApi.updateCategoryWithImage(editingCategory.id, input, file);
+        } else {
+          await categoryApi.updateCategory(editingCategory.id, input);
+        }
         message.success('Đã cập nhật danh mục.');
       } else {
-        await categoryApi.createCategory(input);
+        if (file) {
+          await categoryApi.createCategoryWithImage(input, file);
+        } else {
+          await categoryApi.createCategory(input);
+        }
         message.success('Đã tạo danh mục.');
       }
       setFormOpen(false);

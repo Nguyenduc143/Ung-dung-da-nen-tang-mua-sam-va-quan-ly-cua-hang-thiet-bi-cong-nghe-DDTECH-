@@ -58,11 +58,14 @@ const refreshAccessToken = async (): Promise<string> => {
 
 apiClient.interceptors.request.use((config) => {
   const token = getAccessToken();
-  if (token) {
-    const headers = AxiosHeaders.from(config.headers);
-    headers.set('Authorization', `Bearer ${token}`);
-    config.headers = headers;
+  const headers = AxiosHeaders.from(config.headers);
+  if (config.data instanceof FormData) {
+    headers.delete('Content-Type');
   }
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  config.headers = headers;
   return config;
 });
 

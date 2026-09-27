@@ -27,8 +27,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import * as brandApi from '../api/brandApi';
 import { getApiErrorMessage } from '../api/axiosClient';
-import { BrandFormModal } from '../components/brands/BrandFormModal';
-import type { Brand, BrandInput, CatalogStatus } from '../types/catalog';
+import {
+  BrandFormModal,
+  type BrandFormSubmission,
+} from '../components/brands/BrandFormModal';
+import type { Brand, CatalogStatus } from '../types/catalog';
 
 const { Paragraph, Text, Title } = Typography;
 type StatusFilter = CatalogStatus | 'ALL';
@@ -81,14 +84,22 @@ export function BrandsPage() {
     setFormOpen(true);
   };
 
-  const handleSubmit = async (input: BrandInput) => {
+  const handleSubmit = async ({ input, file }: BrandFormSubmission) => {
     setSubmitting(true);
     try {
       if (editingBrand) {
-        await brandApi.updateBrand(editingBrand.id, input);
+        if (file) {
+          await brandApi.updateBrandWithImage(editingBrand.id, input, file);
+        } else {
+          await brandApi.updateBrand(editingBrand.id, input);
+        }
         message.success('Đã cập nhật thương hiệu.');
       } else {
-        await brandApi.createBrand(input);
+        if (file) {
+          await brandApi.createBrandWithImage(input, file);
+        } else {
+          await brandApi.createBrand(input);
+        }
         message.success('Đã tạo thương hiệu.');
       }
       setFormOpen(false);

@@ -1,9 +1,25 @@
-import { Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd';
-import { useEffect, useMemo } from 'react';
+import { InboxOutlined, PictureOutlined } from '@ant-design/icons';
+import {
+  App as AntApp,
+  Avatar,
+  Col,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Row,
+  Select,
+  Typography,
+  Upload,
+  type UploadFile,
+} from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { Category, CategoryInput, CatalogStatus } from '../../types/catalog';
 
 const { TextArea } = Input;
+const { Text } = Typography;
 
 interface CategoryFormValues {
   name: string;
@@ -15,13 +31,18 @@ interface CategoryFormValues {
   status: CatalogStatus;
 }
 
+export interface CategoryFormSubmission {
+  input: CategoryInput;
+  file: File | null;
+}
+
 interface CategoryFormModalProps {
   open: boolean;
   category: Category | null;
   categories: Category[];
   submitting: boolean;
   onCancel: () => void;
-  onSubmit: (input: CategoryInput) => Promise<void>;
+  onSubmit: (submission: CategoryFormSubmission) => Promise<void>;
 }
 
 const findDescendantIds = (categories: Category[], categoryId: number): Set<number> => {
@@ -48,7 +69,12 @@ export function CategoryFormModal({
   onCancel,
   onSubmit,
 }: CategoryFormModalProps) {
+  const { message } = AntApp.useApp();
   const [form] = Form.useForm<CategoryFormValues>();
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string>();
+  const imageUrl = Form.useWatch('imageUrl', form);
+  const selectedFile = fileList[0]?.originFileObj ?? null;
   const blockedParentIds = useMemo(() => (
     category
       ? new Set([category.id, ...findDescendantIds(categories, category.id)])
@@ -56,7 +82,19 @@ export function CategoryFormModal({
   ), [categories, category]);
 
   useEffect(() => {
+    if (!selectedFile) {
+      setLocalPreviewUrl(undefined);
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setLocalPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedFile]);
+
+  useEffect(() => {
     if (!open) return;
+    setFileList([]);
     form.setFieldsValue({
       name: category?.name ?? '',
       slug: category?.slug ?? '',
@@ -70,13 +108,16 @@ export function CategoryFormModal({
 
   const handleFinish = async (values: CategoryFormValues) => {
     await onSubmit({
-      name: values.name.trim(),
-      slug: values.slug?.trim() || undefined,
-      parentId: values.parentId ?? null,
-      description: values.description?.trim() || null,
-      imageUrl: values.imageUrl?.trim() || null,
-      sortOrder: values.sortOrder ?? 0,
-      status: values.status,
+      file: selectedFile,
+      input: {
+        name: values.name.trim(),
+        slug: values.slug?.trim() || undefined,
+        parentId: values.parentId ?? null,
+        description: values.description?.trim() || null,
+        imageUrl: values.imageUrl?.trim() || null,
+        sortOrder: values.sortOrder ?? 0,
+        status: values.status,
+      },
     });
   };
 
@@ -157,15 +198,79 @@ export function CategoryFormModal({
           </Col>
         </Row>
 
+        <Row gutter={16} align="middle">
+          <Col xs={24} md={8}>
+            <div className="image-form-preview category-image-preview">
+              <Avatar
+                shape="square"
+                size={112}
+                src={localPreviewUrl || imageUrl?.trim() || undefined}
+                icon={<PictureOutlined />}
+              />
+              <Text type="secondary">Xem trước hình ảnh</Text>
+            </div>
+          </Col>
+          <Col xs={24} md={16}>
+            <Form.Item label="Tải ảnh từ máy" className="product-image-upload">
+              <Upload.Dragger
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                beforeUpload={(file) => {
+                  const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                  if (!acceptedTypes.includes(file.type)) {
+                    message.error('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.');
+                    return Upload.LIST_IGNORE;
+                  }
+                  if (file.size > 5 * 1024 * 1024) {
+                    message.error('Ảnh tải lên không được vượt quá 5 MB.');
+                    return Upload.LIST_IGNORE;
+                  }
+                  setFileList([{
+                    uid: file.uid,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    status: 'done',
+                    originFileObj: file,
+                  }]);
+                  return false;
+                }}
+                disabled={submitting}
+                fileList={fileList}
+                maxCount={1}
+                multiple={false}
+                onRemove={() => {
+                  setFileList([]);
+                  return true;
+                }}
+                showUploadList={{ showPreviewIcon: false }}
+              >
+                <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                <p className="ant-upload-text">Bấm hoặc kéo ảnh vào đây</p>
+                <p className="ant-upload-hint">JPG, PNG hoặc WEBP · tối đa 5 MB</p>
+              </Upload.Dragger>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Divider plain>Hoặc dùng đường dẫn ảnh</Divider>
         <Form.Item
           name="imageUrl"
           label="URL hình ảnh"
           rules={[
-            { type: 'url', warningOnly: false, message: 'URL hình ảnh không hợp lệ.' },
+            {
+              validator: async (_, value: string | undefined) => {
+                if (selectedFile || !value?.trim()) return;
+                try {
+                  new URL(value);
+                } catch {
+                  throw new Error('URL hình ảnh không hợp lệ.');
+                }
+              },
+            },
             { max: 500, message: 'URL không được vượt quá 500 ký tự.' },
           ]}
         >
-          <Input placeholder="https://..." />
+          <Input placeholder="https://..." disabled={submitting || Boolean(selectedFile)} />
         </Form.Item>
 
         <Form.Item

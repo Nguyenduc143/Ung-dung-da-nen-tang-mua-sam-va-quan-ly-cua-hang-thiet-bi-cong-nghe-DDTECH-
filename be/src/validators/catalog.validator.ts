@@ -24,5 +24,38 @@ export const attributeSchema = z.object({
 }).strict();
 const nonempty = (data: object) => Object.keys(data).length > 0;
 export const categoryPatch = categorySchema.partial().refine(nonempty, 'Cần ít nhất một trường');
+
+const emptyToUndefined = (value: unknown) => value === '' ? undefined : value;
+const emptyToNull = (value: unknown) => value === '' || value === 'null' ? null : value;
+const categoryUploadFields = {
+  name,
+  slug: z.preprocess(emptyToUndefined, slugSchema.optional()),
+  parentId: z.preprocess(emptyToNull, idSchema.nullable().optional()),
+  description: z.preprocess(emptyToNull, z.string().max(500).nullable().optional()),
+  sortOrder: z.preprocess(emptyToUndefined, z.coerce.number().int().min(-2147483648).max(2147483647).optional()),
+  status: status.optional(),
+};
+export const categoryUploadSchema = z.object(categoryUploadFields).strict();
+export const categoryUploadPatch = z.object({
+  name: name.optional(),
+  slug: categoryUploadFields.slug,
+  parentId: categoryUploadFields.parentId,
+  description: categoryUploadFields.description,
+  sortOrder: categoryUploadFields.sortOrder,
+  status: categoryUploadFields.status,
+}).strict().refine(nonempty, 'Cần ít nhất một trường');
+const brandUploadFields = {
+  name,
+  slug: z.preprocess(emptyToUndefined, slugSchema.optional()),
+  description: z.preprocess(emptyToNull, z.string().max(500).nullable().optional()),
+  status: status.optional(),
+};
+export const brandUploadSchema = z.object(brandUploadFields).strict();
+export const brandUploadPatch = z.object({
+  name: name.optional(),
+  slug: brandUploadFields.slug,
+  description: brandUploadFields.description,
+  status: brandUploadFields.status,
+}).strict().refine(nonempty, 'Cần ít nhất một trường');
 export const brandPatch = brandSchema.partial().refine(nonempty, 'Cần ít nhất một trường');
 export const attributePatch = attributeSchema.partial().refine(nonempty, 'Cần ít nhất một trường');

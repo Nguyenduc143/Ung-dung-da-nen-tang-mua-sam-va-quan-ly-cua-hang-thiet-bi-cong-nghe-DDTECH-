@@ -33,9 +33,9 @@ import { getApiErrorMessage } from '../api/axiosClient';
 import * as productApi from '../api/productApi';
 import type { Brand, Category } from '../types/catalog';
 import type { ProductListItem, ProductQuery, ProductStatus } from '../types/product';
+import { currencyFormatter as moneyFormatter } from '../utils/formatters';
 
 const { Paragraph, Text, Title } = Typography;
-const moneyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
 
 export function ProductsPage() {
   const { message } = AntApp.useApp();

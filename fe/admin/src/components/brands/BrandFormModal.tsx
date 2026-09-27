@@ -1,6 +1,19 @@
-import { TagsOutlined } from '@ant-design/icons';
-import { Avatar, Form, Input, Modal, Select, Typography } from 'antd';
-import { useEffect } from 'react';
+import { InboxOutlined, TagsOutlined } from '@ant-design/icons';
+import {
+  App as AntApp,
+  Avatar,
+  Col,
+  Divider,
+  Form,
+  Input,
+  Modal,
+  Row,
+  Select,
+  Typography,
+  Upload,
+  type UploadFile,
+} from 'antd';
+import { useEffect, useState } from 'react';
 
 import type { Brand, BrandInput, CatalogStatus } from '../../types/catalog';
 
@@ -15,12 +28,17 @@ interface BrandFormValues {
   status: CatalogStatus;
 }
 
+export interface BrandFormSubmission {
+  input: BrandInput;
+  file: File | null;
+}
+
 interface BrandFormModalProps {
   open: boolean;
   brand: Brand | null;
   submitting: boolean;
   onCancel: () => void;
-  onSubmit: (input: BrandInput) => Promise<void>;
+  onSubmit: (submission: BrandFormSubmission) => Promise<void>;
 }
 
 export function BrandFormModal({
@@ -30,11 +48,27 @@ export function BrandFormModal({
   onCancel,
   onSubmit,
 }: BrandFormModalProps) {
+  const { message } = AntApp.useApp();
   const [form] = Form.useForm<BrandFormValues>();
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string>();
   const logoUrl = Form.useWatch('logoUrl', form);
+  const selectedFile = fileList[0]?.originFileObj ?? null;
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setLocalPreviewUrl(undefined);
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setLocalPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedFile]);
 
   useEffect(() => {
     if (!open) return;
+    setFileList([]);
     form.setFieldsValue({
       name: brand?.name ?? '',
       slug: brand?.slug ?? '',
@@ -46,11 +80,14 @@ export function BrandFormModal({
 
   const handleFinish = async (values: BrandFormValues) => {
     await onSubmit({
-      name: values.name.trim(),
-      slug: values.slug?.trim() || undefined,
-      logoUrl: values.logoUrl?.trim() || null,
-      description: values.description?.trim() || null,
-      status: values.status,
+      file: selectedFile,
+      input: {
+        name: values.name.trim(),
+        slug: values.slug?.trim() || undefined,
+        logoUrl: values.logoUrl?.trim() || null,
+        description: values.description?.trim() || null,
+        status: values.status,
+      },
     });
   };
 
@@ -64,7 +101,7 @@ export function BrandFormModal({
       onCancel={onCancel}
       onOk={() => form.submit()}
       destroyOnHidden
-      width={620}
+      width={720}
     >
       <Form<BrandFormValues>
         form={form}
@@ -72,19 +109,8 @@ export function BrandFormModal({
         requiredMark={false}
         onFinish={handleFinish}
       >
-        <div className="brand-form-grid">
-          <div className="logo-preview-panel">
-            <Avatar
-              className="logo-preview"
-              shape="square"
-              size={96}
-              src={logoUrl?.trim() || undefined}
-              icon={<TagsOutlined />}
-            />
-            <Text type="secondary">Xem trước logo</Text>
-          </div>
-
-          <div>
+        <Row gutter={16}>
+          <Col xs={24} md={14}>
             <Form.Item
               name="name"
               label="Tên thương hiệu"
@@ -95,7 +121,8 @@ export function BrandFormModal({
             >
               <Input placeholder="Ví dụ: Apple" autoFocus />
             </Form.Item>
-
+          </Col>
+          <Col xs={24} md={10}>
             <Form.Item
               name="slug"
               label="Slug"
@@ -107,18 +134,83 @@ export function BrandFormModal({
             >
               <Input placeholder="apple" />
             </Form.Item>
-          </div>
-        </div>
+          </Col>
+        </Row>
 
+        <Row gutter={16} align="middle">
+          <Col xs={24} md={8}>
+            <div className="image-form-preview category-image-preview">
+              <Avatar
+                shape="square"
+                size={112}
+                src={localPreviewUrl || logoUrl?.trim() || undefined}
+                icon={<TagsOutlined />}
+              />
+              <Text type="secondary">Xem trước logo</Text>
+            </div>
+          </Col>
+          <Col xs={24} md={16}>
+            <Form.Item label="Tải logo từ máy" className="product-image-upload">
+              <Upload.Dragger
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                beforeUpload={(file) => {
+                  const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                  if (!acceptedTypes.includes(file.type)) {
+                    message.error('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.');
+                    return Upload.LIST_IGNORE;
+                  }
+                  if (file.size > 5 * 1024 * 1024) {
+                    message.error('Ảnh tải lên không được vượt quá 5 MB.');
+                    return Upload.LIST_IGNORE;
+                  }
+                  setFileList([{
+                    uid: file.uid,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    status: 'done',
+                    originFileObj: file,
+                  }]);
+                  form.setFieldValue('logoUrl', '');
+                  return false;
+                }}
+                disabled={submitting}
+                fileList={fileList}
+                maxCount={1}
+                multiple={false}
+                onRemove={() => {
+                  setFileList([]);
+                  return true;
+                }}
+                showUploadList={{ showPreviewIcon: false }}
+              >
+                <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                <p className="ant-upload-text">Bấm hoặc kéo logo vào đây</p>
+                <p className="ant-upload-hint">JPG, PNG hoặc WEBP · tối đa 5 MB</p>
+              </Upload.Dragger>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Divider plain>Hoặc dùng đường dẫn ảnh</Divider>
         <Form.Item
           name="logoUrl"
           label="URL logo"
           rules={[
-            { type: 'url', message: 'URL logo không hợp lệ.' },
+            {
+              validator: async (_, value: string | undefined) => {
+                if (selectedFile || !value?.trim()) return;
+                try {
+                  new URL(value);
+                } catch {
+                  throw new Error('URL logo không hợp lệ.');
+                }
+              },
+            },
             { max: 500, message: 'URL không được vượt quá 500 ký tự.' },
           ]}
         >
-          <Input placeholder="https://..." />
+          <Input placeholder="https://..." disabled={submitting || Boolean(selectedFile)} />
         </Form.Item>
 
         <Form.Item

@@ -1,4 +1,5 @@
 import type { OrderStatus, PaymentMethod, PaymentStatus } from '../types/order';
+import { currencyFormatter } from './formatters';
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
   PENDING: 'Chờ xác nhận',
@@ -48,7 +49,4 @@ export const nextOrderStatuses: Record<OrderStatus, OrderStatus[]> = {
   CANCELLED: [],
 };
 
-export const formatMoney = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
-});
+export const formatMoney = currencyFormatter;

@@ -48,6 +48,41 @@ export const updateCategory = async (id: number, input: CategoryInput): Promise<
   return response.data.data;
 };
 
+const toCategoryFormData = (input: CategoryInput, file: File): FormData => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('name', input.name);
+  if (input.slug) formData.append('slug', input.slug);
+  formData.append('parentId', input.parentId == null ? '' : String(input.parentId));
+  formData.append('description', input.description ?? '');
+  formData.append('sortOrder', String(input.sortOrder ?? 0));
+  formData.append('status', input.status ?? 'ACTIVE');
+  return formData;
+};
+
+export const createCategoryWithImage = async (
+  input: CategoryInput,
+  file: File,
+): Promise<Category> => {
+  const response = await apiClient.post<ApiResponse<Category>>(
+    '/admin/categories/upload',
+    toCategoryFormData(input, file),
+  );
+  return response.data.data;
+};
+
+export const updateCategoryWithImage = async (
+  id: number,
+  input: CategoryInput,
+  file: File,
+): Promise<Category> => {
+  const response = await apiClient.patch<ApiResponse<Category>>(
+    `/admin/categories/${id}/upload`,
+    toCategoryFormData(input, file),
+  );
+  return response.data.data;
+};
+
 export const deleteCategory = async (id: number): Promise<void> => {
   await apiClient.delete<ApiResponse<null>>(`/admin/categories/${id}`);
 };

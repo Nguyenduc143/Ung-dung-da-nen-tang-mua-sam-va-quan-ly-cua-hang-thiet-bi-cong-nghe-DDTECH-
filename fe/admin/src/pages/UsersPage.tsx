@@ -2,7 +2,6 @@ import {
   EyeOutlined,
   LockOutlined,
   ReloadOutlined,
-  SearchOutlined,
   TeamOutlined,
   UnlockOutlined,
   UserOutlined,
@@ -13,7 +12,6 @@ import {
   Avatar,
   Button,
   Card,
-  Input,
   Select,
   Space,
   Table,
@@ -28,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { getApiErrorMessage } from '../api/axiosClient';
 import * as userApi from '../api/userApi';
+import { SearchInput } from '../components/shared';
 import { useAuthStore } from '../stores/authStore';
 import type { UserRole, UserStatus } from '../types/auth';
 import type { AdminUser, UserQuery } from '../types/user';
@@ -54,14 +53,6 @@ export function UsersPage() {
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [changingId, setChangingId] = useState<number | null>(null);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedSearch(search.trim());
-      setPage(1);
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [search]);
 
   const query = useMemo<UserQuery>(() => ({
     page,
@@ -174,7 +165,12 @@ export function UsersPage() {
 
       <Card className="product-filter-card" bordered={false}>
         <div className="user-filter-grid">
-          <Input allowClear value={search} prefix={<SearchOutlined />} placeholder="Tên, email hoặc số điện thoại" onChange={(event) => setSearch(event.target.value)} />
+          <SearchInput
+            value={search}
+            placeholder="Tên, email hoặc số điện thoại"
+            onChange={setSearch}
+            onDebouncedChange={(value) => { setDebouncedSearch(value); setPage(1); }}
+          />
           <Select allowClear value={role} placeholder="Vai trò" options={Object.entries(roleLabels).map(([value, label]) => ({ value, label }))} onChange={(value) => { setRole(value); setPage(1); }} />
           <Select allowClear value={status} placeholder="Trạng thái" options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} onChange={(value) => { setStatus(value); setPage(1); }} />
           <Space><Button onClick={clearFilters}>Xóa bộ lọc</Button><Button icon={<ReloadOutlined />} onClick={() => void loadUsers()}>Làm mới</Button></Space>
