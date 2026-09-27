@@ -44,5 +44,18 @@ export const categoryUploadPatch = z.object({
   sortOrder: categoryUploadFields.sortOrder,
   status: categoryUploadFields.status,
 }).strict().refine(nonempty, 'Cần ít nhất một trường');
+const brandUploadFields = {
+  name,
+  slug: z.preprocess(emptyToUndefined, slugSchema.optional()),
+  description: z.preprocess(emptyToNull, z.string().max(500).nullable().optional()),
+  status: status.optional(),
+};
+export const brandUploadSchema = z.object(brandUploadFields).strict();
+export const brandUploadPatch = z.object({
+  name: name.optional(),
+  slug: brandUploadFields.slug,
+  description: brandUploadFields.description,
+  status: brandUploadFields.status,
+}).strict().refine(nonempty, 'Cần ít nhất một trường');
 export const brandPatch = brandSchema.partial().refine(nonempty, 'Cần ít nhất một trường');
 export const attributePatch = attributeSchema.partial().refine(nonempty, 'Cần ít nhất một trường');

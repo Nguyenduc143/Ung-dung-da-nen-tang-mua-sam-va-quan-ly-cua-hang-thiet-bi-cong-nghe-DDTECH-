@@ -368,13 +368,16 @@ Admin (header `Authorization: Bearer <accessToken>`):
 - `POST /api/admin/products/:id/variants`
 - `PATCH/DELETE /api/admin/variants/:id`
 - `POST /api/admin/products/:id/images`
+- `POST /api/admin/products/:id/images/upload` (`multipart/form-data`, trường file `image`)
 - `DELETE /api/admin/product-images/:id`
 - `PATCH /api/admin/product-images/:id/primary`
 
 Sản phẩm có `hasVariants: true` lấy stock từ tổng stock các phiên bản. Giá hiển thị
 được đồng bộ từ phiên bản có giá thực trả thấp nhất. SKU và slug là duy nhất.
 Khi thêm ảnh đầu tiên, backend tự đặt làm ảnh chính; đặt hoặc xóa ảnh chính đều
-được xử lý trong transaction để mỗi sản phẩm chỉ có một ảnh chính.
+được xử lý trong transaction để mỗi sản phẩm chỉ có một ảnh chính. Ảnh tải từ
+máy chấp nhận JPG, PNG hoặc WEBP tối đa 5 MB, được lưu tại `uploads/products/`
+và được phục vụ công khai qua `/uploads/products/<tên-file>`.
 
 Chạy kiểm thử tích hợp phần 06 (MySQL theo `.env` phải đang hoạt động):
 
@@ -392,6 +395,8 @@ Chỉ trả bản ghi `ACTIVE` và chưa xóa mềm. Chi tiết danh mục kèm 
 Admin (header `Authorization: Bearer <accessToken>`):
 
 - `GET/POST /api/admin/categories`, `PATCH/DELETE /api/admin/categories/:id`
+- `POST /api/admin/categories/upload`, `PATCH /api/admin/categories/:id/upload`
+  để tải ảnh JPG, PNG hoặc WEBP tối đa 5 MB từ máy
 - `GET/POST /api/admin/brands`, `PATCH/DELETE /api/admin/brands/:id`
 - `GET/POST /api/admin/categories/:id/attributes`
 - `PATCH/DELETE /api/admin/category-attributes/:id`

@@ -3,6 +3,8 @@ import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
+  BRAND_IMAGE_PUBLIC_PATH,
+  BRAND_IMAGE_UPLOAD_DIR,
   CATEGORY_IMAGE_PUBLIC_PATH,
   CATEGORY_IMAGE_UPLOAD_DIR,
   PRODUCT_IMAGE_PUBLIC_PATH,
@@ -12,6 +14,7 @@ import { AppError } from '../utils/app-error';
 
 const productImageFilenamePattern = /^product-\d+-[0-9a-f-]{36}\.(?:jpg|png|webp)$/i;
 const categoryImageFilenamePattern = /^category-\d+-[0-9a-f-]{36}\.(?:jpg|png|webp)$/i;
+const brandImageFilenamePattern = /^brand-\d+-[0-9a-f-]{36}\.(?:jpg|png|webp)$/i;
 
 const imageSignatures = [
   {
@@ -78,6 +81,10 @@ export const storeCategoryImage = (file: Express.Multer.File): Promise<StoredPro
   storeImage(file, CATEGORY_IMAGE_UPLOAD_DIR, 'category')
 );
 
+export const storeBrandImage = (file: Express.Multer.File): Promise<StoredProductImage> => (
+  storeImage(file, BRAND_IMAGE_UPLOAD_DIR, 'brand')
+);
+
 const removeStoredImage = async (
   filename: string,
   directory: string,
@@ -98,6 +105,10 @@ export const removeStoredProductImage = (filename: string): Promise<void> => (
 
 export const removeStoredCategoryImage = (filename: string): Promise<void> => (
   removeStoredImage(filename, CATEGORY_IMAGE_UPLOAD_DIR, categoryImageFilenamePattern)
+);
+
+export const removeStoredBrandImage = (filename: string): Promise<void> => (
+  removeStoredImage(filename, BRAND_IMAGE_UPLOAD_DIR, brandImageFilenamePattern)
 );
 
 const storedFilenameFromUrl = (imageUrl: string, publicPath: string): string | null => {
@@ -121,4 +132,9 @@ export const removeStoredProductImageByUrl = async (imageUrl: string): Promise<v
 export const removeStoredCategoryImageByUrl = async (imageUrl: string): Promise<void> => {
   const filename = storedFilenameFromUrl(imageUrl, CATEGORY_IMAGE_PUBLIC_PATH);
   if (filename) await removeStoredCategoryImage(filename);
+};
+
+export const removeStoredBrandImageByUrl = async (imageUrl: string): Promise<void> => {
+  const filename = storedFilenameFromUrl(imageUrl, BRAND_IMAGE_PUBLIC_PATH);
+  if (filename) await removeStoredBrandImage(filename);
 };
