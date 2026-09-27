@@ -117,6 +117,8 @@ Body tạo địa chỉ:
 | GET | `/admin/categories` | Admin | Không | Tất cả category | `401`, `403` |
 | POST | `/admin/categories` | Admin | `name`; tùy chọn `slug`, `parentId`, `description`, `imageUrl`, `sortOrder`, `status` | Category | `401`, `403`, `409`, `422` |
 | PATCH | `/admin/categories/:id` | Admin | Các trường category cần đổi | Category | `401`, `403`, `404`, `409`, `422` |
+| POST | `/admin/categories/upload` | Admin | `multipart/form-data`: file `image`, `name`; tùy chọn `slug`, `parentId`, `description`, `sortOrder`, `status` | Category | `401`, `403`, `409`, `413`, `422` |
+| PATCH | `/admin/categories/:id/upload` | Admin | `multipart/form-data`: file `image` và các trường category cần đổi | Category | `401`, `403`, `404`, `409`, `413`, `422` |
 | DELETE | `/admin/categories/:id` | Admin | Không | `null` | `401`, `403`, `404`, `409`, `422` |
 | GET | `/admin/brands` | Admin | Không | Tất cả brand | `401`, `403` |
 | POST | `/admin/brands` | Admin | `name`; tùy chọn `slug`, `logoUrl`, `description`, `status` | Brand | `401`, `403`, `409`, `422` |
@@ -141,6 +143,7 @@ Body tạo địa chỉ:
 | PATCH | `/admin/variants/:id` | Admin | Các trường variant cần đổi, không nhận `stock` | `{ variant }` | `401`, `403`, `404`, `409`, `422` |
 | DELETE | `/admin/variants/:id` | Admin | Không | `null` | `401`, `403`, `404`, `409`, `422` |
 | POST | `/admin/products/:id/images` | Admin | `imageUrl`; tùy chọn `variantId`, `altText`, `isPrimary`, `sortOrder` | `{ image }` | `401`, `403`, `404`, `422` |
+| POST | `/admin/products/:id/images/upload` | Admin | `multipart/form-data`: file `image` (JPG/PNG/WEBP, tối đa 5 MB); tùy chọn `variantId`, `altText`, `isPrimary`, `sortOrder` | `{ image, upload }` | `401`, `403`, `404`, `413`, `422` |
 | DELETE | `/admin/product-images/:id` | Admin | Không | `null` | `401`, `403`, `404`, `422` |
 | PATCH | `/admin/product-images/:id/primary` | Admin | Không | `{ image }` | `401`, `403`, `404`, `422` |
 
