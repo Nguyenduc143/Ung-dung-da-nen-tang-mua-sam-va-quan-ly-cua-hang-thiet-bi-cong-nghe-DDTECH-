@@ -10,7 +10,7 @@ DDTECH/frontend/mobile
 
 ## Stack
 
-- Expo SDK 54
+- Expo SDK 57
 - React Native
 - TypeScript
 - React Navigation
@@ -41,7 +41,7 @@ Không hard-code IP trong code.
 > ## Quy tắc chung cho Codex
 >
 > - Chỉ làm Mobile User tại `DDTECH/frontend/mobile`.
-> - Stack: React Native + Expo SDK 54 + TypeScript.
+> - Stack: React Native + Expo SDK 57 + TypeScript.
 > - Dùng React Navigation, Axios, Socket.io Client.
 > - Không sửa Backend nếu không thật sự cần thiết.
 > - Không hard-code dữ liệu nếu backend đã có API.
