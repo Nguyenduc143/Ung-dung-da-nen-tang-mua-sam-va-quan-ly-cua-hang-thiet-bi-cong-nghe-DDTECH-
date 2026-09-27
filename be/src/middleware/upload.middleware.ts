@@ -38,3 +38,4 @@ export const receiveImage: RequestHandler = (req, res, next) => {
 export const receiveProductImage = receiveImage;
 export const receiveCategoryImage = receiveImage;
 export const receiveBrandImage = receiveImage;
+export const receiveAvatarImage = receiveImage;

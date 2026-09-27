@@ -43,7 +43,17 @@ export type CustomerStackParamList = {
   OrderDetail: { orderId: number };
   Notifications: undefined;
   Reviews: { productId: number };
-  WriteReview: { productId: number; orderId?: number; reviewId?: number };
+  WriteReview: {
+    productId: number;
+    orderId?: number;
+    reviewId?: number;
+    review?: {
+      id: number;
+      rating: number;
+      comment: string | null;
+      images: string[] | null;
+    };
+  };
   EditProfile: undefined;
   ChangePassword: undefined;
 };

@@ -292,7 +292,8 @@ Admin:
 
 Checkout nhận `addressId` hoặc các trường `receiverName`, `receiverPhone`,
 `province`, `district`, `ward`, `addressLine`; ngoài ra có `shippingMethodId`,
-`promotionCode`, `note`, `paymentMethod`. Giá, tồn kho, phí vận chuyển, khuyến mãi
+`cartItemIds`, `promotionCode`, `note`, `paymentMethod`. `cartItemIds` chọn các dòng giỏ
+hàng cần thanh toán; các dòng không chọn vẫn được giữ lại. Giá, tồn kho, phí vận chuyển, khuyến mãi
 và tổng tiền đều được backend đọc/tính lại trong transaction.
 
 Ví dụ checkout bằng địa chỉ đã lưu:
@@ -300,6 +301,7 @@ Ví dụ checkout bằng địa chỉ đã lưu:
 ```json
 {
   "addressId": 1,
+  "cartItemIds": [12, 15],
   "shippingMethodId": 1,
   "promotionCode": "DDTECH10",
   "note": "Giao giờ hành chính",

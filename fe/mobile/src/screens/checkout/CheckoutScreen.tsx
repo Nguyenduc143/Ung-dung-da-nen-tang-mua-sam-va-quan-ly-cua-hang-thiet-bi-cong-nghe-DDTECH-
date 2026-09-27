@@ -16,6 +16,7 @@ import {
 
 import { getApiErrorMessage } from '@/api/axiosClient';
 import * as ordersApi from '@/api/orders.api';
+import * as paymentsApi from '@/api/payments.api';
 import * as promotionsApi from '@/api/promotions.api';
 import { AddressCard, EmptyState, ErrorState, PrimaryButton } from '@/components';
 import type { CustomerStackParamList } from '@/navigation/types';
@@ -208,12 +209,26 @@ export function CheckoutScreen({ navigation, route }: Props) {
         paymentMethod,
         note: note.trim() || null,
       });
+      let paymentWarning: string | null = null;
+      if (result.order.paymentMethod === 'COD') {
+        try {
+          await paymentsApi.createPayment(result.order.id);
+        } catch (paymentError) {
+          paymentWarning = getApiErrorMessage(
+            paymentError,
+            'Chưa thể khởi tạo thông tin thanh toán COD.',
+          );
+        }
+      }
       resetCart();
       await loadCart(true).catch(() => undefined);
       navigation.replace('OrderDetail', { orderId: result.order.id });
       Alert.alert(
         'Đặt hàng thành công',
-        `Đơn ${result.order.orderCode} đã được tạo với tổng tiền ${formatCurrency(result.order.totalAmount)}.`,
+        [
+          `Đơn ${result.order.orderCode} đã được tạo với tổng tiền ${formatCurrency(result.order.totalAmount)}.`,
+          paymentWarning ? `Lưu ý: ${paymentWarning} Bạn có thể thử lại trong chi tiết đơn hàng.` : null,
+        ].filter(Boolean).join('\n\n'),
       );
     } catch (error) {
       Alert.alert('Không thể đặt hàng', getApiErrorMessage(error, 'Vui lòng kiểm tra lại thông tin.'));
