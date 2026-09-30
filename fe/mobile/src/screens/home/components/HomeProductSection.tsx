@@ -6,6 +6,7 @@ import type { ProductListItem } from '@/types';
 import {
   getProductDiscountPercent,
   getProductImageSource,
+  getProductAvailability,
   getProductOriginalPrice,
   getProductPrice,
 } from '@/utils';
@@ -46,6 +47,7 @@ export function HomeProductSection({
           keyExtractor={(product) => String(product.id)}
           renderItem={({ item }) => {
             const discount = getProductDiscountPercent(item);
+            const availability = getProductAvailability(item);
             return (
               <ProductCard
                 badgeText={discount > 0 ? `-${discount}%` : badgeFallback}
@@ -59,6 +61,7 @@ export function HomeProductSection({
                 price={getProductPrice(item)}
                 rating={item.ratingAvg}
                 soldCount={item.soldCount}
+                stateLabel={availability.isPurchasable ? undefined : availability.label}
                 style={styles.card}
               />
             );

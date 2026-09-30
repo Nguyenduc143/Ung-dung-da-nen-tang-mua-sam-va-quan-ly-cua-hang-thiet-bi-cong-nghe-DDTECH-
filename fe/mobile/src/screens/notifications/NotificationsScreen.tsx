@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -20,9 +20,10 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '@/api/notifications.api';
-import { EmptyState, ErrorState, LoadingSkeleton, NotificationItem } from '@/components';
+import { EmptyState, ErrorState, ListSkeleton, NotificationItem } from '@/components';
 import type { IoniconName } from '@/components';
 import type { CustomerStackParamList } from '@/navigation/types';
+import { subscribeRealtime } from '@/socket';
 import { useBadgeStore } from '@/stores';
 import { colors, radius, spacing, typography } from '@/theme';
 import type {
@@ -79,23 +80,6 @@ const formatTime = (value: string): string => {
   if (days < 7) return `${days} ngày trước`;
   return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
 };
-
-function NotificationSkeleton() {
-  return (
-    <View style={styles.skeletonList}>
-      {[0, 1, 2, 3, 4].map((item) => (
-        <View key={item} style={styles.skeletonRow}>
-          <LoadingSkeleton borderRadius={radius.md} height={50} width={50} />
-          <View style={styles.skeletonText}>
-            <LoadingSkeleton height={16} width="58%" />
-            <LoadingSkeleton height={14} width="92%" />
-            <LoadingSkeleton height={14} width="70%" />
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
 
 export function NotificationsScreen({ navigation }: Props) {
   const unreadCount = useBadgeStore((state) => state.unreadNotificationCount);
@@ -172,6 +156,10 @@ export function NotificationsScreen({ navigation }: Props) {
     void loadPage(1, 'initial');
     return () => { requestIdRef.current += 1; };
   }, [loadPage]));
+
+  useEffect(() => subscribeRealtime('notification:new', () => {
+    void loadPage(1, 'refresh');
+  }), [loadPage]);
 
   const navigateFromNotification = (notification: AppNotification) => {
     if (!notification.referenceId) return;
@@ -250,7 +238,7 @@ export function NotificationsScreen({ navigation }: Props) {
   );
 
   if (isLoading && notifications.length === 0) {
-    return <View style={styles.screen}>{filterBar}<NotificationSkeleton /></View>;
+    return <View style={styles.screen}>{filterBar}<ListSkeleton count={5} variant="notification" /></View>;
   }
   if (error && notifications.length === 0) {
     return (
@@ -268,7 +256,7 @@ export function NotificationsScreen({ navigation }: Props) {
         contentContainerStyle={styles.listContent}
         data={notifications}
         keyExtractor={(item) => String(item.id)}
-        ListEmptyComponent={<EmptyState description={selectedFilter === 'UNREAD' ? 'Bạn đã đọc tất cả thông báo.' : 'Thông báo mới sẽ xuất hiện tại đây.'} icon="notifications-off-outline" title={selectedFilter === 'UNREAD' ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo'} />}
+        ListEmptyComponent={<EmptyState description={selectedFilter === 'UNREAD' ? 'Bạn đã đọc tất cả thông báo.' : undefined} preset="notifications" title={selectedFilter === 'UNREAD' ? 'Không có thông báo chưa đọc' : undefined} />}
         ListFooterComponent={notifications.length > 0 ? (
           <View style={styles.footer}>
             {isLoadingMore ? <ActivityIndicator color={colors.primary} /> : null}
@@ -347,7 +335,4 @@ const styles = StyleSheet.create({
   endText: { ...typography.caption, color: colors.textMuted },
   pendingItem: { opacity: 0.55 },
   pressed: { opacity: 0.72 },
-  skeletonList: { paddingTop: spacing.lg },
-  skeletonRow: { flexDirection: 'row', gap: spacing.md, padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider, backgroundColor: colors.surface },
-  skeletonText: { flex: 1, gap: spacing.sm },
 });

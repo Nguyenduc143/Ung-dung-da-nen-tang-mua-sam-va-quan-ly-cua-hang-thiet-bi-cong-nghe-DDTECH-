@@ -106,10 +106,8 @@ export function FavoritesScreen({ navigation }: Props) {
       ListEmptyComponent={(
         <EmptyState
           actionLabel="Khám phá sản phẩm"
-          description="Nhấn biểu tượng trái tim ở sản phẩm bạn quan tâm để lưu lại tại đây."
-          icon="heart-outline"
           onAction={() => navigation.navigate('ProductList')}
-          title="Chưa có sản phẩm yêu thích"
+          preset="favorites"
         />
       )}
       ListHeaderComponent={favorites.length > 0 ? (

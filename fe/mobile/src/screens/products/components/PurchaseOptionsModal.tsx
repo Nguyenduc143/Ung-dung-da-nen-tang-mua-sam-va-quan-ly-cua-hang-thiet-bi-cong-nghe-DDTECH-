@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PriceDisplay, PrimaryButton, QuantityStepper } from '@/components';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type { Product, ProductVariant } from '@/types';
+import { getVariantAvailability } from '@/utils';
 import { VariantSelector } from './VariantSelector';
 
 export type PurchaseOptionAction = 'cart' | 'buy';
@@ -55,7 +56,7 @@ export function PurchaseOptionsModal({
   const originalPrice = currentPrice < price ? price : null;
   const stock = product.hasVariants ? selectedVariant?.stock ?? 0 : product.stock;
   const availableVariants = variants.filter((variant) => (
-    variant.status === 'ACTIVE' && variant.stock > 0
+    getVariantAvailability(variant).isPurchasable
   ));
   const variantPrices = availableVariants.map((variant) => (
     effectivePrice(variant.price, variant.salePrice)

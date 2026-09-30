@@ -31,6 +31,7 @@ import {
   type StatusBadgeTone,
 } from '@/components';
 import type { CustomerStackParamList } from '@/navigation/types';
+import { subscribeRealtime } from '@/socket';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type {
   OrderDetailData,
@@ -114,41 +115,60 @@ function InfoRow({ label, value, valueTone }: { label: string; value: string; va
   );
 }
 
-function OrderItemCard({ item, onPress }: { item: OrderItem; onPress?: () => void }) {
+interface OrderItemCardProps {
+  item: OrderItem;
+  onPress?: () => void;
+  onReview?: () => void;
+}
+
+function OrderItemCard({ item, onPress, onReview }: OrderItemCardProps) {
   const imageUrl = resolveMediaUrl(item.productImage);
   return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
-      disabled={!onPress}
-      onPress={onPress}
-      style={({ pressed }) => [styles.itemCard, pressed && styles.pressed]}
-    >
-      <View style={styles.itemImageContainer}>
-        {imageUrl ? (
-          <Image resizeMode="contain" source={{ uri: imageUrl }} style={styles.itemImage} />
-        ) : (
-          <Ionicons color={colors.textMuted} name="cube-outline" size={32} />
-        )}
-      </View>
-      <View style={styles.itemContent}>
-        <Text numberOfLines={2} style={styles.itemName}>{item.productName}</Text>
-        {item.variantName ? <Text style={styles.itemVariant}>{item.variantName}</Text> : null}
-        <Text style={styles.itemSku}>SKU: {item.productSku}</Text>
-        <View style={styles.itemPriceRow}>
-          <PriceDisplay
-            direction="row"
-            originalPrice={item.originalPrice}
-            price={item.price}
-            size="small"
-          />
-          <Text style={styles.itemQuantity}>x{item.quantity}</Text>
+    <View style={styles.itemContainer}>
+      <Pressable
+        accessibilityRole={onPress ? 'button' : undefined}
+        disabled={!onPress}
+        onPress={onPress}
+        style={({ pressed }) => [styles.itemCard, pressed && styles.pressed]}
+      >
+        <View style={styles.itemImageContainer}>
+          {imageUrl ? (
+            <Image resizeMode="contain" source={{ uri: imageUrl }} style={styles.itemImage} />
+          ) : (
+            <Ionicons color={colors.textMuted} name="cube-outline" size={32} />
+          )}
         </View>
-        <View style={styles.itemSubtotalRow}>
-          <Text style={styles.itemSubtotalLabel}>Thành tiền</Text>
-          <PriceDisplay price={item.subtotal} size="small" />
+        <View style={styles.itemContent}>
+          <Text numberOfLines={2} style={styles.itemName}>{item.productName}</Text>
+          {item.variantName ? <Text style={styles.itemVariant}>{item.variantName}</Text> : null}
+          <Text style={styles.itemSku}>SKU: {item.productSku}</Text>
+          <View style={styles.itemPriceRow}>
+            <PriceDisplay
+              direction="row"
+              originalPrice={item.originalPrice}
+              price={item.price}
+              size="small"
+            />
+            <Text style={styles.itemQuantity}>x{item.quantity}</Text>
+          </View>
+          <View style={styles.itemSubtotalRow}>
+            <Text style={styles.itemSubtotalLabel}>Thành tiền</Text>
+            <PriceDisplay price={item.subtotal} size="small" />
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+      {onReview ? (
+        <Pressable
+          accessibilityLabel={`Đánh giá ${item.productName}`}
+          accessibilityRole="button"
+          onPress={onReview}
+          style={({ pressed }) => [styles.reviewButton, pressed && styles.reviewButtonPressed]}
+        >
+          <Ionicons color={colors.rating} name="star-outline" size={19} />
+          <Text style={styles.reviewButtonText}>Đánh giá sản phẩm</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -325,6 +345,24 @@ export function OrderDetailScreen({ navigation, route }: Props) {
     };
   }, [loadDetail, loadPayment]);
 
+  useEffect(() => {
+    const unsubscribeOrder = subscribeRealtime('order:updated', (event) => {
+      if (event.orderId === orderId) void loadDetail(true);
+    });
+    const refreshPayment = (event: { orderId: number }) => {
+      if (event.orderId !== orderId) return;
+      void loadPayment();
+      void loadDetail(true);
+    };
+    const unsubscribePayment = subscribeRealtime('payment:updated', refreshPayment);
+    const unsubscribePaymentCreated = subscribeRealtime('payment:created', refreshPayment);
+    return () => {
+      unsubscribeOrder();
+      unsubscribePayment();
+      unsubscribePaymentCreated();
+    };
+  }, [loadDetail, loadPayment, orderId]);
+
   useLayoutEffect(() => {
     navigation.setOptions({ title: detail?.order.orderCode ?? 'Chi tiết đơn hàng' });
   }, [detail?.order.orderCode, navigation]);
@@ -459,12 +497,28 @@ export function OrderDetailScreen({ navigation, route }: Props) {
         </Section>
 
         <Section icon={<Ionicons color={colors.primary} name="cube-outline" size={22} />} title={`Sản phẩm (${items.length})`}>
+          {order.status === 'DELIVERED' ? (
+            <View style={styles.reviewPrompt}>
+              <Ionicons color={colors.success} name="checkmark-circle-outline" size={20} />
+              <Text style={styles.reviewPromptText}>
+                Đơn hàng đã giao. Hãy chia sẻ trải nghiệm của bạn về sản phẩm.
+              </Text>
+            </View>
+          ) : null}
           {items.length > 0 ? items.map((item, index) => (
             <View key={item.id}>
               {index > 0 ? <View style={styles.divider} /> : null}
               <OrderItemCard
                 item={item}
                 onPress={item.productId ? () => navigation.navigate('ProductDetail', { productId: item.productId! }) : undefined}
+                onReview={order.status === 'DELIVERED'
+                  && item.productId !== null
+                  && items.findIndex((candidate) => candidate.productId === item.productId) === index
+                  ? () => navigation.navigate('WriteReview', {
+                      productId: item.productId!,
+                      orderId: order.id,
+                    })
+                  : undefined}
               />
             </View>
           )) : <Text style={styles.mutedText}>Không có thông tin sản phẩm.</Text>}
@@ -588,6 +642,7 @@ const styles = StyleSheet.create({
   noteBox: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
   noteLabel: { ...typography.captionSemibold, color: colors.textSecondary },
   noteText: { ...typography.bodySmall, color: colors.textPrimary, marginTop: spacing.xs },
+  itemContainer: { gap: spacing.md },
   itemCard: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   itemImageContainer: { width: 88, height: 88, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
   itemImage: { width: '90%', height: '90%' },
@@ -599,6 +654,30 @@ const styles = StyleSheet.create({
   itemQuantity: { ...typography.bodySmall, color: colors.textSecondary },
   itemSubtotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md },
   itemSubtotalLabel: { ...typography.caption, color: colors.textSecondary },
+  reviewPrompt: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.successSoft,
+  },
+  reviewPromptText: { ...typography.bodySmall, flex: 1, color: colors.textPrimary },
+  reviewButton: {
+    minHeight: 42,
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.rating,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  reviewButtonPressed: { backgroundColor: colors.warningSoft, opacity: 0.8 },
+  reviewButtonText: { ...typography.bodySmallSemibold, color: colors.warning },
   divider: { height: 1, marginVertical: spacing.lg, backgroundColor: colors.divider },
   timelineRow: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.md },
   timelineMarker: { width: 16, alignItems: 'center' },

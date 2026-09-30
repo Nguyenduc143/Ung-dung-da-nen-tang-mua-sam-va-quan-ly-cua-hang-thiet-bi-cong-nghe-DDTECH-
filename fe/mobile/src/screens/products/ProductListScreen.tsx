@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { EmptyState, ErrorState, ProductCard } from '@/components';
+import { EmptyState, ErrorState, ProductCard, ProductListSkeleton } from '@/components';
 import { getApiErrorMessage } from '@/api/axiosClient';
 import { useCatalogData, useProductList } from '@/hooks';
 import type { CustomerStackParamList, ProductListParams } from '@/navigation/types';
@@ -22,6 +22,7 @@ import type { ProductQuery, ProductSort } from '@/types';
 import {
   getProductBadgeText,
   getProductImageSource,
+  getProductAvailability,
   getProductOriginalPrice,
   getProductPrice,
 } from '@/utils';
@@ -29,7 +30,6 @@ import {
   ProductFilterModal,
   type ProductFilterValues,
 } from './components/ProductFilterModal';
-import { ProductListSkeleton } from './components/ProductListSkeleton';
 import {
   ProductSortModal,
   productSortOptions,
@@ -253,6 +253,7 @@ export function ProductListScreen({ navigation, route }: Props) {
             description="Hãy thử thay đổi danh mục, thương hiệu hoặc khoảng giá."
             icon="search-outline"
             onAction={activeFilterCount > 0 ? clearProductFilters : undefined}
+            preset="products"
             title="Không tìm thấy sản phẩm"
           />
         )}
@@ -278,8 +279,9 @@ export function ProductListScreen({ navigation, route }: Props) {
         onEndReachedThreshold={0.35}
         onRefresh={() => void refresh()}
         refreshing={isRefreshing}
-        renderItem={({ item }) => (
-          <ProductCard
+        renderItem={({ item }) => {
+          const availability = getProductAvailability(item);
+          return <ProductCard
             badgeText={getProductBadgeText(item)}
             imageSource={getProductImageSource(item)}
             isFavorite={favoriteProductIds.has(item.id)}
@@ -291,9 +293,10 @@ export function ProductListScreen({ navigation, route }: Props) {
             price={getProductPrice(item)}
             rating={item.ratingAvg}
             soldCount={item.soldCount}
+            stateLabel={availability.isPurchasable ? undefined : availability.label}
             style={styles.productCard}
-          />
-        )}
+          />;
+        }}
         showsVerticalScrollIndicator={false}
       />
 

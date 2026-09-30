@@ -2,6 +2,7 @@ import { withTransaction } from '../config/database';
 import * as inventoryRepository from '../repositories/inventory.repository';
 import * as productVariantRepository from '../repositories/product-variant.repository';
 import * as productRepository from '../repositories/product.repository';
+import { emitToAll } from '../socket';
 import { AppError } from '../utils/app-error';
 import type {
 CreateVariantInput,
@@ -41,7 +42,9 @@ export const createVariant = async (
     });
     const variant = await productVariantRepository.findVariant(variantId);
     if (!variant) throw new Error('Newly created variant could not be loaded');
-    return toVariantResponse(variant);
+    const response = toVariantResponse(variant);
+    emitToAll('product:updated', { productId, variantId, action: 'variant_created' });
+    return response;
   } catch (error) {
     if (isDuplicateEntryError(error)) throw new AppError(409, 'SKU phiên bản đã tồn tại');
     throw error;
@@ -70,7 +73,9 @@ export const updateVariant = async (variantId: number, input: UpdateVariantInput
     if (!variant || variant.productId !== productId) {
       throw new Error('Updated variant could not be loaded');
     }
-    return toVariantResponse(variant);
+    const response = toVariantResponse(variant);
+    emitToAll('product:updated', { productId, variantId, action: 'variant_updated' });
+    return response;
   } catch (error) {
     if (isDuplicateEntryError(error)) throw new AppError(409, 'SKU phiên bản đã tồn tại');
     throw error;
@@ -78,7 +83,7 @@ export const updateVariant = async (variantId: number, input: UpdateVariantInput
 };
 
 export const deleteVariant = async (variantId: number): Promise<void> => {
-  await withTransaction(async (connection) => {
+  const productId = await withTransaction(async (connection) => {
     const variant = await productVariantRepository.findVariant(variantId, connection);
     if (!variant) throw new AppError(404, 'Không tìm thấy phiên bản sản phẩm');
     await productRepository.lockProduct(variant.productId, connection);
@@ -96,5 +101,7 @@ export const deleteVariant = async (variantId: number): Promise<void> => {
     if (product.hasVariants === 1) {
       await productVariantRepository.syncProductFromVariants(variant.productId, connection);
     }
+    return variant.productId;
   });
+  emitToAll('product:updated', { productId, variantId, action: 'variant_deleted' });
 };

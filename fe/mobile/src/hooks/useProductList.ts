@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getApiErrorMessage } from '@/api/axiosClient';
 import { listProducts } from '@/api/products.api';
+import { subscribeCatalogChanges } from '@/socket';
 import type {
   ProductListItem,
   ProductPagination,
@@ -114,6 +115,11 @@ export function useProductList(filters: Omit<ProductQuery, 'limit' | 'page'>): P
       requestIdRef.current += 1;
     };
   }, [loadPage, queryKey]);
+
+  useEffect(() => subscribeCatalogChanges(() => {
+    loadedPagesRef.current.clear();
+    void loadPage(1, 'refresh');
+  }), [loadPage]);
 
   const hasNextPage = pagination.page < pagination.totalPages;
 

@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { EmptyState, ErrorState, LoadingSkeleton, ProductCard, SearchBar } from '@/components';
+import { EmptyState, ErrorState, ProductCard, ProductGridSkeleton, SearchBar } from '@/components';
 import { getApiErrorMessage } from '@/api/axiosClient';
 import { useCatalogData, useDebouncedValue, useProductList } from '@/hooks';
 import type { CustomerStackParamList } from '@/navigation/types';
@@ -22,6 +22,7 @@ import type { ProductQuery, ProductSort } from '@/types';
 import {
   getProductBadgeText,
   getProductImageSource,
+  getProductAvailability,
   getProductOriginalPrice,
   getProductPrice,
 } from '@/utils';
@@ -202,11 +203,7 @@ export function SearchScreen({ navigation, route }: Props) {
   );
 
   const emptyContent = isLoading ? (
-    <View style={styles.skeletonGrid}>
-      {[0, 1, 2, 3, 4, 5].map((item) => (
-        <LoadingSkeleton borderRadius={radius.lg} height={300} key={item} style={styles.skeletonCard} />
-      ))}
-    </View>
+    <ProductGridSkeleton />
   ) : error ? (
     <ErrorState
       description={error}
@@ -221,6 +218,7 @@ export function SearchScreen({ navigation, route }: Props) {
         : 'Hãy thử thay đổi danh mục, thương hiệu hoặc khoảng giá.'}
       icon="search-outline"
       onAction={activeChips.length > 0 ? () => setFilters({}) : undefined}
+      preset="products"
       title="Không tìm thấy sản phẩm"
     />
   );
@@ -257,8 +255,9 @@ export function SearchScreen({ navigation, route }: Props) {
         onEndReachedThreshold={0.35}
         onRefresh={() => void refresh()}
         refreshing={isRefreshing}
-        renderItem={({ item }) => (
-          <ProductCard
+        renderItem={({ item }) => {
+          const availability = getProductAvailability(item);
+          return <ProductCard
             badgeText={getProductBadgeText(item)}
             imageSource={getProductImageSource(item)}
             isFavorite={favoriteProductIds.has(item.id)}
@@ -270,9 +269,10 @@ export function SearchScreen({ navigation, route }: Props) {
             price={getProductPrice(item)}
             rating={item.ratingAvg}
             soldCount={item.soldCount}
+            stateLabel={availability.isPurchasable ? undefined : availability.label}
             style={styles.productCard}
-          />
-        )}
+          />;
+        }}
         showsVerticalScrollIndicator={false}
       />
 
@@ -349,8 +349,6 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.68 },
   productRow: { gap: spacing.md, marginBottom: spacing.md },
   productCard: { flex: 1, maxWidth: '48%' },
-  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  skeletonCard: { width: '48%' },
   footer: { minHeight: 64, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
   loadMoreError: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   loadMoreErrorText: { ...typography.caption, flexShrink: 1, color: colors.danger },

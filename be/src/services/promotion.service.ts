@@ -4,6 +4,7 @@ import * as cartItemRepository from '../repositories/cart-item.repository';
 import { withTransaction } from '../config/database';
 import * as cartRepository from '../repositories/cart.repository';
 import * as promotionRepository from '../repositories/promotion.repository';
+import { emitToAll } from '../socket';
 import { AppError } from '../utils/app-error';
 import type {
 CreatePromotionInput,
@@ -236,7 +237,9 @@ export const createPromotion = async (input: CreatePromotionInput) => {
     });
     const promotion = await promotionRepository.findById(promotionId);
     if (!promotion) throw new Error('Newly created promotion could not be loaded');
-    return toPromotionResponse(promotion);
+    const response = toPromotionResponse(promotion);
+    emitToAll('promotion:updated', { promotionId, action: 'created' });
+    return response;
   } catch (error) {
     if (isDuplicateEntryError(error)) throw new AppError(409, 'Mã khuyến mãi đã tồn tại');
     throw error;
@@ -258,7 +261,9 @@ export const updatePromotion = async (promotionId: number, input: UpdatePromotio
     });
     const promotion = await promotionRepository.findById(promotionId);
     if (!promotion) throw new Error('Updated promotion could not be loaded');
-    return toPromotionResponse(promotion);
+    const response = toPromotionResponse(promotion);
+    emitToAll('promotion:updated', { promotionId, action: 'updated' });
+    return response;
   } catch (error) {
     if (isDuplicateEntryError(error)) throw new AppError(409, 'Mã khuyến mãi đã tồn tại');
     throw error;
@@ -271,4 +276,5 @@ export const deletePromotion = async (promotionId: number): Promise<void> => {
     if (!promotion) throw new AppError(404, 'Không tìm thấy mã khuyến mãi');
     await promotionRepository.deactivatePromotion(promotionId, connection);
   });
+  emitToAll('promotion:updated', { promotionId, action: 'deleted' });
 };

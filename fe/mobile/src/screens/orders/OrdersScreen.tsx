@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,8 +15,9 @@ import {
 
 import { getApiErrorMessage } from '@/api/axiosClient';
 import { listMyOrders } from '@/api/orders.api';
-import { EmptyState, ErrorState, LoadingSkeleton, OrderCard } from '@/components';
+import { EmptyState, ErrorState, ListSkeleton, OrderCard } from '@/components';
 import type { CustomerStackParamList, MainTabParamList } from '@/navigation/types';
+import { subscribeRealtime } from '@/socket';
 import { colors, radius, spacing, typography } from '@/theme';
 import type { OrderListItem, OrderPagination, OrderStatus } from '@/types';
 import { resolveMediaUrl } from '@/utils';
@@ -62,33 +63,6 @@ const mergeOrders = (current: OrderListItem[], incoming: OrderListItem[]) => {
   incoming.forEach((order) => byId.set(order.id, order));
   return [...byId.values()];
 };
-
-function OrdersSkeleton() {
-  return (
-    <View style={styles.skeletonList}>
-      {[0, 1, 2].map((item) => (
-        <View key={item} style={styles.skeletonCard}>
-          <View style={styles.skeletonHeader}>
-            <View style={styles.skeletonTitleGroup}>
-              <LoadingSkeleton height={18} width="55%" />
-              <LoadingSkeleton height={14} width="72%" />
-            </View>
-            <LoadingSkeleton borderRadius={radius.round} height={28} width={92} />
-          </View>
-          <View style={styles.skeletonProduct}>
-            <LoadingSkeleton height={92} width={92} />
-            <View style={styles.skeletonProductContent}>
-              <LoadingSkeleton height={18} width="82%" />
-              <LoadingSkeleton height={14} width="62%" />
-              <LoadingSkeleton height={14} width="28%" />
-            </View>
-          </View>
-          <LoadingSkeleton height={18} width="46%" />
-        </View>
-      ))}
-    </View>
-  );
-}
 
 export function OrdersScreen({ navigation }: Props) {
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<CustomerStackParamList>>();
@@ -152,6 +126,10 @@ export function OrdersScreen({ navigation }: Props) {
     return () => { requestIdRef.current += 1; };
   }, [loadPage]));
 
+  useEffect(() => subscribeRealtime('order:updated', () => {
+    void loadPage(1, 'refresh');
+  }), [loadPage]);
+
   const hasNextPage = pagination.page < pagination.totalPages;
   const loadMore = () => {
     if (!hasNextPage || isLoading || isRefreshing || isLoadingMore) return;
@@ -191,7 +169,7 @@ export function OrdersScreen({ navigation }: Props) {
   );
 
   if (isLoading && orders.length === 0) {
-    return <View style={styles.screen}>{filterBar}<OrdersSkeleton /></View>;
+    return <View style={styles.screen}>{filterBar}<ListSkeleton count={3} variant="order" /></View>;
   }
 
   if (error && orders.length === 0) {
@@ -225,6 +203,7 @@ export function OrdersScreen({ navigation }: Props) {
             onAction={selectedFilter === 'ALL'
               ? () => rootNavigation?.navigate('ProductList')
               : undefined}
+            preset="orders"
             title={selectedFilter === 'ALL' ? 'Bạn chưa có đơn hàng' : 'Không có đơn hàng'}
           />
         )}
@@ -339,17 +318,4 @@ const styles = StyleSheet.create({
   loadMoreErrorText: { ...typography.caption, flexShrink: 1, color: colors.danger },
   endText: { ...typography.caption, color: colors.textMuted },
   pressed: { opacity: 0.72 },
-  skeletonList: { padding: spacing.screen, gap: spacing.lg },
-  skeletonCard: {
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    gap: spacing.lg,
-  },
-  skeletonHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
-  skeletonTitleGroup: { flex: 1, gap: spacing.sm },
-  skeletonProduct: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  skeletonProductContent: { flex: 1, gap: spacing.sm },
 });

@@ -20,6 +20,7 @@ import type { CustomerStackParamList } from '@/navigation/types';
 import { useCartStore, useFavoriteStore } from '@/stores';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type { ProductVariant } from '@/types';
+import { getProductAvailability } from '@/utils';
 import { ProductDetailSkeleton } from './components/ProductDetailSkeleton';
 import { ProductGallery, type GalleryImage } from './components/ProductGallery';
 import { PurchaseOptionsModal, type PurchaseOptionAction } from './components/PurchaseOptionsModal';
@@ -138,16 +139,9 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   const currentPrice = effectivePrice(displayedPrice, displayedSalePrice);
   const originalPrice = currentPrice < displayedPrice ? displayedPrice : null;
   const discount = discountPercent(displayedPrice, displayedSalePrice);
-  const availableStock = product.hasVariants
-    ? variants
-      .filter((variant) => variant.status === 'ACTIVE')
-      .reduce((total, variant) => total + variant.stock, 0)
-    : product.stock;
-  const hasPurchasableVariant = variants.some((variant) => (
-    variant.status === 'ACTIVE' && variant.stock > 0
-  ));
-  const canPurchase = product.status === 'ACTIVE'
-    && (product.hasVariants ? hasPurchasableVariant : availableStock > 0);
+  const availability = getProductAvailability(product, variants);
+  const availableStock = availability.stock;
+  const canPurchase = availability.isPurchasable;
 
   const openPurchaseOptions = (action: PurchaseOptionAction) => {
     setSelectedVariant(null);
@@ -260,7 +254,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
               <View>
                 <Text style={styles.infoLabel}>Tình trạng</Text>
                 <Text style={[styles.infoValue, !canPurchase && styles.outOfStock]}>
-                  {availableStock > 0 ? `Còn ${availableStock} sản phẩm` : 'Hết hàng'}
+                  {availability.label}
                 </Text>
               </View>
             </View>
