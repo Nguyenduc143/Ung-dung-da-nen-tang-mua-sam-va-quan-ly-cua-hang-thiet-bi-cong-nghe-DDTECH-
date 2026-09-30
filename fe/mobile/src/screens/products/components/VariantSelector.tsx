@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 import type { ProductVariant } from '@/types';
+import { getVariantAvailability } from '@/utils';
 
 interface VariantSelectorProps {
   variants: ProductVariant[];
@@ -18,7 +19,8 @@ export function VariantSelector({ variants, selectedId, onSelect }: VariantSelec
       <View style={styles.options}>
         {variants.map((variant) => {
           const selected = variant.id === selectedId;
-          const unavailable = variant.status !== 'ACTIVE' || variant.stock <= 0;
+          const availability = getVariantAvailability(variant);
+          const unavailable = !availability.isPurchasable;
           return (
             <Pressable
               accessibilityRole="button"
@@ -41,7 +43,7 @@ export function VariantSelector({ variants, selectedId, onSelect }: VariantSelec
                   {variant.variantName}
                 </Text>
                 <Text style={[styles.stockText, selected && styles.selectedText]}>
-                  {unavailable ? 'Hết hàng' : `Còn ${variant.stock}`}
+                  {availability.label}
                 </Text>
               </View>
             </Pressable>

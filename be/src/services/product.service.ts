@@ -4,6 +4,7 @@ import * as inventoryRepository from '../repositories/inventory.repository';
 import * as productImageRepository from '../repositories/product-image.repository';
 import * as productVariantRepository from '../repositories/product-variant.repository';
 import * as productRepository from '../repositories/product.repository';
+import { emitToAll } from '../socket';
 import { AppError } from '../utils/app-error';
 import type {
 CreateProductInput,
@@ -126,7 +127,9 @@ export const createProduct = async (adminId: number, input: CreateProductInput) 
       }
       return id;
     });
-    return getProductDetail(productId, false);
+    const product = await getProductDetail(productId, false);
+    emitToAll('product:updated', { productId, action: 'created' });
+    return product;
   } catch (error) {
     if (isDuplicateEntryError(error)) {
       throw new AppError(409, 'Slug hoặc SKU sản phẩm đã tồn tại');
@@ -165,7 +168,9 @@ export const updateProduct = async (productId: number, input: UpdateProductInput
       const hasVariants = input.hasVariants ?? existing.hasVariants === 1;
       if (hasVariants) await productVariantRepository.syncProductFromVariants(productId, connection);
     });
-    return getProductDetail(productId, false);
+    const product = await getProductDetail(productId, false);
+    emitToAll('product:updated', { productId, action: 'updated' });
+    return product;
   } catch (error) {
     if (isDuplicateEntryError(error)) {
       throw new AppError(409, 'Slug hoặc SKU sản phẩm đã tồn tại');
@@ -181,4 +186,5 @@ export const deleteProduct = async (productId: number): Promise<void> => {
       throw new AppError(404, 'Không tìm thấy sản phẩm');
     }
   });
+  emitToAll('product:updated', { productId, action: 'deleted' });
 };

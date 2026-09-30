@@ -154,10 +154,8 @@ export function CartScreen({ navigation }: Props) {
         ListEmptyComponent={(
           <EmptyState
             actionLabel="Khám phá sản phẩm"
-            description="Hãy thêm sản phẩm bạn yêu thích để bắt đầu mua sắm."
-            icon="cart-outline"
             onAction={() => rootNavigation?.navigate('ProductList')}
-            title="Giỏ hàng đang trống"
+            preset="cart"
           />
         )}
         ListHeaderComponent={items.length > 0 ? (

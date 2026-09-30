@@ -18,13 +18,15 @@ import {
 } from '@/screens';
 import { colors, fontWeights } from '@/theme';
 import { getUnreadNotificationCount } from '@/api/notifications.api';
-import { useBadgeStore, useCartStore, useFavoriteStore } from '@/stores';
+import { useAuthStore, useBadgeStore, useCartStore, useFavoriteStore } from '@/stores';
+import { connectRealtime, disconnectRealtime } from '@/socket';
 import { MainTabNavigator } from './MainTabNavigator';
 import type { CustomerStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
 export function MainStackNavigator() {
+  const accessToken = useAuthStore((state) => state.accessToken);
   const loadFavorites = useFavoriteStore((state) => state.loadFavorites);
   const loadCart = useCartStore((state) => state.loadCart);
   const setUnreadNotificationCount = useBadgeStore((state) => state.setUnreadNotificationCount);
@@ -36,6 +38,15 @@ export function MainStackNavigator() {
       .then(setUnreadNotificationCount)
       .catch(() => undefined);
   }, [loadCart, loadFavorites, setUnreadNotificationCount]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      disconnectRealtime();
+      return undefined;
+    }
+    connectRealtime(accessToken);
+    return disconnectRealtime;
+  }, [accessToken]);
 
   return (
     <Stack.Navigator

@@ -1,7 +1,21 @@
 import { StyleSheet, View } from 'react-native';
 
-import { LoadingSkeleton } from '@/components';
 import { radius, spacing } from '@/theme';
+import { LoadingSkeleton } from './LoadingSkeleton';
+
+export interface ProductGridSkeletonProps {
+  count?: number;
+}
+
+export function ProductGridSkeleton({ count = 6 }: ProductGridSkeletonProps) {
+  return (
+    <View style={styles.grid}>
+      {Array.from({ length: count }, (_, index) => (
+        <LoadingSkeleton borderRadius={radius.lg} height={300} key={index} style={styles.card} />
+      ))}
+    </View>
+  );
+}
 
 export function ProductListSkeleton() {
   return (
@@ -11,11 +25,7 @@ export function ProductListSkeleton() {
         <LoadingSkeleton height={22} width={105} />
         <LoadingSkeleton borderRadius={radius.round} height={40} width={125} />
       </View>
-      <View style={styles.grid}>
-        {[0, 1, 2, 3, 4, 5].map((item) => (
-          <LoadingSkeleton borderRadius={radius.lg} height={300} key={item} style={styles.card} />
-        ))}
-      </View>
+      <ProductGridSkeleton />
     </View>
   );
 }
