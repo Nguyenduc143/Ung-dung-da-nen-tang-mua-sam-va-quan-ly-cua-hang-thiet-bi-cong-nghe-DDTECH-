@@ -72,6 +72,8 @@ CREATE TABLE users (
   date_of_birth  DATE            NULL,
   role           ENUM('CUSTOMER','ADMIN') NOT NULL DEFAULT 'CUSTOMER',
   status         ENUM('ACTIVE','LOCKED')  NOT NULL DEFAULT 'ACTIVE' COMMENT 'LOCKED = admin khoá tài khoản',
+  auth_version   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Tăng để vô hiệu hóa toàn bộ JWT cũ',
+  email_verified_at DATETIME NULL COMMENT 'NULL cho đến khi xác nhận OTP đăng ký',
   last_login_at  DATETIME        NULL,
   deleted_at     DATETIME        NULL COMMENT 'Soft delete',
   created_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -106,6 +108,39 @@ CREATE TABLE refresh_tokens (
 -- ---------------------------------------------------------------------
 -- 3.3 addresses : sổ địa chỉ giao hàng (1 user - N địa chỉ)
 -- ---------------------------------------------------------------------
+-- Mã OTP đặt lại mật khẩu (chỉ lưu HMAC, không lưu mã gốc)
+CREATE TABLE password_reset_codes (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id     BIGINT UNSIGNED NOT NULL,
+  code_hash   CHAR(64)        NOT NULL,
+  expires_at  DATETIME        NOT NULL,
+  used_at     DATETIME        NULL,
+  attempts    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_password_reset_user_created (user_id, created_at),
+  KEY idx_password_reset_expires (expires_at),
+  CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users (id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Mã OTP đặt lại mật khẩu';
+
+CREATE TABLE email_verification_codes (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id     BIGINT UNSIGNED NOT NULL,
+  code_hash   CHAR(64)        NOT NULL COMMENT 'HMAC-SHA256 của OTP đăng ký',
+  expires_at  DATETIME        NOT NULL,
+  used_at     DATETIME        NULL,
+  attempts    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_email_verification_user_created (user_id, created_at),
+  KEY idx_email_verification_expires (expires_at),
+  CONSTRAINT fk_email_verification_user FOREIGN KEY (user_id) REFERENCES users (id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Mã OTP xác nhận email đăng ký';
+
 CREATE TABLE addresses (
   id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id         BIGINT UNSIGNED NOT NULL,
@@ -448,6 +483,7 @@ CREATE TABLE orders (
   UNIQUE KEY uq_orders_code (order_code),
   KEY idx_orders_user (user_id),
   KEY idx_orders_status (status),
+  KEY idx_orders_status_delivered (status, delivered_at),
   KEY idx_orders_created (created_at),
   KEY idx_orders_payment_status (payment_status),
   CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users (id)
@@ -635,6 +671,7 @@ CREATE TABLE inventory_transactions (
   KEY idx_inventory_product (product_id, created_at),
   KEY idx_inventory_variant (variant_id),
   KEY idx_inventory_type (type),
+  KEY idx_inventory_created_type (created_at, type),
   KEY idx_inventory_reference (reference_type, reference_id),
   CONSTRAINT fk_inventory_product FOREIGN KEY (product_id) REFERENCES products (id)
     ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -709,11 +746,11 @@ DELIMITER ;
 --   admin@ddtech.vn   / Admin@123   (bcrypt thật, cost 10)
 --   an.nguyen@gmail.com, binh.tran@gmail.com, cuong.le@gmail.com / User@123
 -- ---------------------------------------------------------------------
-INSERT INTO users (id, full_name, email, phone, password_hash, avatar_url, gender, date_of_birth, role, status, last_login_at, created_at) VALUES
-(1, 'DDTECH Admin',    'admin@ddtech.vn',     '0900000001', '$2b$10$xsy48/hms87uA8zdcVr0geq12Fng43sczn64fT6dxbPXHPAMQkfx2', 'https://placehold.co/200x200/0f172a/ffffff/png?text=AD', 'MALE',   '1995-01-15', 'ADMIN',    'ACTIVE', '2026-09-10 08:00:00', '2026-08-01 08:00:00'),
-(2, 'Nguyễn Văn An',   'an.nguyen@gmail.com', '0901234567', '$2b$10$rJ1ol4mzx.8rJwHF5RwEpOEnKHV7HuFzxnY9m3p1r.tgeg1kBHSPK', 'https://placehold.co/200x200/2563eb/ffffff/png?text=AN', 'MALE',   '2003-05-20', 'CUSTOMER', 'ACTIVE', '2026-09-10 08:25:00', '2026-08-10 09:30:00'),
-(3, 'Trần Thị Bình',   'binh.tran@gmail.com', '0912345678', '$2b$10$rJ1ol4mzx.8rJwHF5RwEpOEnKHV7HuFzxnY9m3p1r.tgeg1kBHSPK', 'https://placehold.co/200x200/db2777/ffffff/png?text=TB', 'FEMALE', '2002-11-02', 'CUSTOMER', 'ACTIVE', '2026-09-08 10:00:00', '2026-08-15 14:00:00'),
-(4, 'Lê Văn Cường',    'cuong.le@gmail.com',  '0923456789', '$2b$10$rJ1ol4mzx.8rJwHF5RwEpOEnKHV7HuFzxnY9m3p1r.tgeg1kBHSPK', NULL,                                                       'MALE',   '2001-03-08', 'CUSTOMER', 'LOCKED', '2026-08-20 20:00:00', '2026-08-18 19:45:00');
+INSERT INTO users (id, full_name, email, phone, password_hash, avatar_url, gender, date_of_birth, role, status, email_verified_at, last_login_at, created_at) VALUES
+(1, 'DDTECH Admin',    'admin@ddtech.vn',     '0900000001', '$2b$10$xsy48/hms87uA8zdcVr0geq12Fng43sczn64fT6dxbPXHPAMQkfx2', 'https://placehold.co/200x200/0f172a/ffffff/png?text=AD', 'MALE',   '1995-01-15', 'ADMIN',    'ACTIVE', '2026-08-01 08:00:00', '2026-09-10 08:00:00', '2026-08-01 08:00:00'),
+(2, 'Nguyễn Văn An',   'an.nguyen@gmail.com', '0901234567', '$2b$10$rJ1ol4mzx.8rJwHF5RwEpOEnKHV7HuFzxnY9m3p1r.tgeg1kBHSPK', 'https://placehold.co/200x200/2563eb/ffffff/png?text=AN', 'MALE',   '2003-05-20', 'CUSTOMER', 'ACTIVE', '2026-08-10 09:30:00', '2026-09-10 08:25:00', '2026-08-10 09:30:00'),
+(3, 'Trần Thị Bình',   'binh.tran@gmail.com', '0912345678', '$2b$10$rJ1ol4mzx.8rJwHF5RwEpOEnKHV7HuFzxnY9m3p1r.tgeg1kBHSPK', 'https://placehold.co/200x200/db2777/ffffff/png?text=TB', 'FEMALE', '2002-11-02', 'CUSTOMER', 'ACTIVE', '2026-08-15 14:00:00', '2026-09-08 10:00:00', '2026-08-15 14:00:00'),
+(4, 'Lê Văn Cường',    'cuong.le@gmail.com',  '0923456789', '$2b$10$rJ1ol4mzx.8rJwHF5RwEpOEnKHV7HuFzxnY9m3p1r.tgeg1kBHSPK', NULL,                                                       'MALE',   '2001-03-08', 'CUSTOMER', 'LOCKED', '2026-08-18 19:45:00', '2026-08-20 20:00:00', '2026-08-18 19:45:00');
 
 -- ---------------------------------------------------------------------
 -- 5.2 addresses

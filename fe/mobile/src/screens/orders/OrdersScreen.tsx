@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   ScrollView,
@@ -18,6 +19,7 @@ import { listMyOrders } from '@/api/orders.api';
 import { EmptyState, ErrorState, ListSkeleton, OrderCard } from '@/components';
 import type { CustomerStackParamList, MainTabParamList } from '@/navigation/types';
 import { subscribeRealtime } from '@/socket';
+import { useCartStore } from '@/stores';
 import { colors, radius, spacing, typography } from '@/theme';
 import type { OrderListItem, OrderPagination, OrderStatus } from '@/types';
 import { resolveMediaUrl } from '@/utils';
@@ -74,6 +76,7 @@ export function OrdersScreen({ navigation }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [buyingAgainOrderId, setBuyingAgainOrderId] = useState<number | null>(null);
   const requestIdRef = useRef(0);
   const loadingMoreRef = useRef(false);
 
@@ -136,6 +139,63 @@ export function OrdersScreen({ navigation }: Props) {
     void loadPage(pagination.page + 1, 'more');
   };
   const refresh = () => void loadPage(1, 'refresh');
+  const addCartItem = useCartStore((state) => state.addItem);
+
+  const handleBuyAgain = async (order: OrderListItem) => {
+    if (buyingAgainOrderId !== null) return;
+    const availableItems = order.items.filter((item) => item.productId !== null);
+    if (availableItems.length === 0) {
+      Alert.alert('Không thể mua lại', 'Sản phẩm trong đơn này hiện không còn khả dụng.');
+      return;
+    }
+
+    setBuyingAgainOrderId(order.id);
+    let addedCount = 0;
+    try {
+      for (const item of availableItems) {
+        await addCartItem({
+          productId: item.productId!,
+          variantId: item.variantId,
+          quantity: item.quantity,
+        });
+        addedCount += 1;
+      }
+      Alert.alert(
+        'Đã thêm vào giỏ',
+        `Đã thêm ${addedCount} sản phẩm từ đơn ${order.orderCode} vào giỏ hàng.`,
+        [
+          { text: 'Tiếp tục xem' },
+          { text: 'Xem giỏ', onPress: () => navigation.navigate('CartTab') },
+        ],
+      );
+    } catch (cartError) {
+      Alert.alert(
+        addedCount > 0 ? 'Đã thêm một phần đơn hàng' : 'Không thể mua lại',
+        addedCount > 0
+          ? `Đã thêm ${addedCount} sản phẩm. Một số sản phẩm còn lại không khả dụng.`
+          : getApiErrorMessage(cartError, 'Sản phẩm có thể đã hết hàng hoặc ngừng bán.'),
+      );
+    } finally {
+      setBuyingAgainOrderId(null);
+    }
+  };
+
+  const handleReview = (order: OrderListItem) => {
+    const reviewableItems = order.items.filter((item) => (
+      item.productId !== null && item.isReviewed !== true
+    ));
+    if (reviewableItems.length === 1) {
+      rootNavigation?.navigate('WriteReview', {
+        productId: reviewableItems[0].productId!,
+        orderId: order.id,
+      });
+      return;
+    }
+    rootNavigation?.navigate('OrderReviewProducts', {
+      orderId: order.id,
+      orderCode: order.orderCode,
+    });
+  };
 
   const filterBar = (
     <View style={styles.filterSection}>
@@ -261,10 +321,19 @@ export function OrdersScreen({ navigation }: Props) {
 
           return (
             <OrderCard
+              buyAgainLoading={buyingAgainOrderId === item.id}
               code={item.orderCode}
               date={dateFormatter.format(new Date(item.createdAt))}
               imageSource={imageUrl ? { uri: imageUrl } : undefined}
               onPress={() => rootNavigation?.navigate('OrderDetail', { orderId: item.id })}
+              onBuyAgain={item.status === 'DELIVERED'
+                ? () => void handleBuyAgain(item)
+                : undefined}
+              onReview={item.status === 'DELIVERED' && item.items.some((orderItem) => (
+                orderItem.productId !== null && orderItem.isReviewed !== true
+              ))
+                ? () => handleReview(item)
+                : undefined}
               productName={preview?.productName ?? 'Thông tin sản phẩm trong đơn hàng'}
               productSummary={summary || undefined}
               quantity={item.totalQuantity || undefined}

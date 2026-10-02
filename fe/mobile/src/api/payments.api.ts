@@ -1,12 +1,12 @@
-import type { ApiResponse, CreatePaymentData, PaymentDetailData, PaymentRecord } from '@/types';
+import type { ApiResponse, CreatePaymentData, PaymentDetailData } from '@/types';
 import { apiClient } from './axiosClient';
 
-export const createPayment = async (orderId: number): Promise<PaymentRecord> => {
+export const createPayment = async (orderId: number): Promise<CreatePaymentData> => {
   const response = await apiClient.post<ApiResponse<CreatePaymentData>>(
     `/payments/${orderId}/create`,
     {},
   );
-  return response.data.data.payment;
+  return response.data.data;
 };
 
 export const getPayment = async (orderId: number): Promise<PaymentDetailData> => {

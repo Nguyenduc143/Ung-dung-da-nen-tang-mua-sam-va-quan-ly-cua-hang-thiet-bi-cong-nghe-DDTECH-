@@ -1,5 +1,6 @@
 import { withTransaction } from '../config/database';
 import * as sessionRepository from '../repositories/session.repository';
+import { emitToUser } from '../socket';
 import { AppError } from '../utils/app-error';
 import {
 hashRefreshToken,
@@ -22,9 +23,17 @@ export const refreshTokens = async (rawRefreshToken: string, metadata: ClientMet
       throw new AppError(401, 'Refresh token không hợp lệ hoặc đã bị thu hồi');
     }
 
+    if (payload.ver !== storedToken.auth_version) {
+      throw new AppError(401, 'Phiên đăng nhập đã bị thu hồi');
+    }
+
     await sessionRepository.revokeRefreshTokenById(connection, storedToken.id);
 
-    const tokens = createTokenPair({ id: storedToken.user_id, role: storedToken.role });
+    const tokens = createTokenPair({
+      id: storedToken.user_id,
+      role: storedToken.role,
+      authVersion: storedToken.auth_version,
+    });
     await sessionRepository.createRefreshToken(connection, {
       userId: storedToken.user_id,
       tokenHash: tokens.refreshTokenHash,
@@ -52,5 +61,11 @@ export const logout = async (rawRefreshToken: string): Promise<void> => {
   }
 };
 
-export const logoutAll = async (userId: number): Promise<number> =>
-  sessionRepository.revokeAllRefreshTokens(userId);
+export const logoutAll = async (userId: number): Promise<number> => {
+  const revokedCount = await withTransaction((connection) => (
+    sessionRepository.revokeAllRefreshTokens(connection, userId)
+  ));
+
+  emitToUser(userId, 'auth:session_revoked', { reason: 'logout_all' });
+  return revokedCount;
+};

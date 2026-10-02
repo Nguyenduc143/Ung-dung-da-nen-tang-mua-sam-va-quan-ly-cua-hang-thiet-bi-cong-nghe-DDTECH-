@@ -21,6 +21,7 @@ export interface TokenPair {
 export interface LoginInput {
   email: string;
   password: string;
+  remember?: boolean;
 }
 
 export interface LoginData extends TokenPair {

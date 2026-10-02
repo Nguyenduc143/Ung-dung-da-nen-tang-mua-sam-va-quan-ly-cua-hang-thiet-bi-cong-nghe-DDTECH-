@@ -66,8 +66,11 @@ export function RegisterScreen({ navigation }: Props) {
 
     const input = toRegisterInput(values);
     try {
-      await register(input);
-      navigation.replace('Login', { registeredEmail: input.email });
+      const data = await register(input);
+      navigation.replace('VerifyRegistration', {
+        email: input.email,
+        developmentCode: data.developmentCode,
+      });
     } catch (requestError) {
       const apiFieldErrors = pickApiFieldErrors(
         getApiValidationErrors(requestError),

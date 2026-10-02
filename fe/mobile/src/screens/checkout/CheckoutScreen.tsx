@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as WebBrowser from 'expo-web-browser';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -63,7 +64,7 @@ export function CheckoutScreen({ navigation, route }: Props) {
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [isShippingLoading, setIsShippingLoading] = useState(true);
   const [shippingMethodId, setShippingMethodId] = useState<number | null>(null);
-  const [paymentMethod] = useState<PaymentMethod>('COD');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('COD');
   const [note, setNote] = useState('');
   const [voucherInput, setVoucherInput] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState<PromotionValidationData | null>(null);
@@ -210,23 +211,38 @@ export function CheckoutScreen({ navigation, route }: Props) {
         note: note.trim() || null,
       });
       let paymentWarning: string | null = null;
-      if (result.order.paymentMethod === 'COD') {
-        try {
-          await paymentsApi.createPayment(result.order.id);
-        } catch (paymentError) {
-          paymentWarning = getApiErrorMessage(
-            paymentError,
-            'Chưa thể khởi tạo thông tin thanh toán COD.',
-          );
+      let browserResult: WebBrowser.WebBrowserAuthSessionResult | null = null;
+      try {
+        const paymentResult = await paymentsApi.createPayment(result.order.id);
+        if (result.order.paymentMethod === 'VNPAY') {
+          if (!paymentResult.paymentUrl) {
+            paymentWarning = 'Máy chủ chưa trả về đường dẫn thanh toán VNPAY.';
+          } else {
+            browserResult = await WebBrowser.openAuthSessionAsync(
+              paymentResult.paymentUrl,
+              'ddtech://payment-result',
+            );
+          }
         }
+      } catch (paymentError) {
+        paymentWarning = getApiErrorMessage(
+          paymentError,
+          `Chưa thể khởi tạo thanh toán ${result.order.paymentMethod}.`,
+        );
       }
       resetCart();
       await loadCart(true).catch(() => undefined);
       navigation.replace('OrderDetail', { orderId: result.order.id });
+      const onlineMessage = result.order.paymentMethod === 'VNPAY'
+        ? browserResult?.type === 'success'
+          ? 'VNPAY đã trả kết quả. Hệ thống đang xác nhận giao dịch từ máy chủ VNPAY.'
+          : 'Đơn hàng đã được tạo nhưng bạn chưa hoàn tất VNPAY. Có thể thanh toán lại trong chi tiết đơn hàng.'
+        : null;
       Alert.alert(
-        'Đặt hàng thành công',
+        result.order.paymentMethod === 'VNPAY' ? 'Đã tạo đơn hàng' : 'Đặt hàng thành công',
         [
           `Đơn ${result.order.orderCode} đã được tạo với tổng tiền ${formatCurrency(result.order.totalAmount)}.`,
+          onlineMessage,
           paymentWarning ? `Lưu ý: ${paymentWarning} Bạn có thể thử lại trong chi tiết đơn hàng.` : null,
         ].filter(Boolean).join('\n\n'),
       );
@@ -239,9 +255,12 @@ export function CheckoutScreen({ navigation, route }: Props) {
   };
 
   const confirmOrder = () => {
+    const methodLabel = paymentMethod === 'VNPAY'
+      ? 'Thanh toán trực tuyến qua VNPAY'
+      : 'Thanh toán khi nhận hàng';
     Alert.alert(
       'Xác nhận đặt hàng',
-      `Thanh toán khi nhận hàng. Tổng dự kiến ${formatCurrency(estimatedTotal)}.`,
+      `${methodLabel}. Tổng dự kiến ${formatCurrency(estimatedTotal)}.`,
       [
         { style: 'cancel', text: 'Kiểm tra lại' },
         { text: 'Đặt hàng', onPress: () => void submitOrder() },
@@ -423,16 +442,15 @@ export function CheckoutScreen({ navigation, route }: Props) {
             <CheckoutOptionCard
               description="Thanh toán trực tiếp cho nhân viên giao hàng"
               label="Thanh toán khi nhận hàng (COD)"
-              onPress={() => undefined}
-              selected
+              onPress={() => setPaymentMethod('COD')}
+              selected={paymentMethod === 'COD'}
             />
             <CheckoutOptionCard
-              description="Cổng thanh toán đang được tích hợp"
-              disabled
-              label="Ví điện tử / Ngân hàng"
-              meta="Sắp có"
-              onPress={() => undefined}
-              selected={false}
+              description="Thanh toán an toàn qua ứng dụng ngân hàng, thẻ hoặc VNPAY-QR"
+              label="Thanh toán qua VNPAY"
+              meta="Trực tuyến"
+              onPress={() => setPaymentMethod('VNPAY')}
+              selected={paymentMethod === 'VNPAY'}
             />
           </View>
         </CheckoutSection>

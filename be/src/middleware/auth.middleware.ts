@@ -23,9 +23,13 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
     const payload = verifyAccessToken(token);
     const user = await findActiveUserById(Number(payload.sub));
     if (!user) throw new AppError(401, 'Tài khoản không còn hoạt động');
+    if (payload.ver !== user.auth_version) {
+      throw new AppError(401, 'Phiên đăng nhập đã bị thu hồi');
+    }
     req.user = {
       id: user.id,
       role: user.role,
+      authVersion: user.auth_version,
     };
     next();
   } catch (error) {

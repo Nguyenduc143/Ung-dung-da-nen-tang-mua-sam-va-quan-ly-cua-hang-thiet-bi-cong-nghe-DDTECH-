@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 
+import { clearAuthSession } from '@/api/authSession';
 import { SOCKET_BASE_URL } from '@/constants';
 import { useBadgeStore } from '@/stores/badgeStore';
 import type { NotificationType, OrderStatus, PaymentStatus } from '@/types';
@@ -40,6 +41,10 @@ export interface PromotionRealtimeEvent {
   productId?: number;
 }
 
+export interface AuthSessionRevokedEvent {
+  reason: 'logout_all';
+}
+
 export interface RealtimeEventMap {
   'order:updated': OrderRealtimeEvent;
   'payment:updated': PaymentRealtimeEvent;
@@ -48,6 +53,7 @@ export interface RealtimeEventMap {
   'product:updated': ProductRealtimeEvent;
   'product:stock_updated': ProductRealtimeEvent;
   'promotion:updated': PromotionRealtimeEvent;
+  'auth:session_revoked': AuthSessionRevokedEvent;
 }
 
 type RealtimeEventName = keyof RealtimeEventMap;
@@ -97,6 +103,10 @@ const attachServerListeners = (client: Socket): void => {
   });
   client.on('promotion:updated', (payload: PromotionRealtimeEvent) => {
     publish('promotion:updated', payload);
+  });
+  client.on('auth:session_revoked', (payload: AuthSessionRevokedEvent) => {
+    publish('auth:session_revoked', payload);
+    void clearAuthSession('invalid').catch(() => undefined);
   });
 };
 

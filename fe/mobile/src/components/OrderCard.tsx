@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   StyleSheet,
@@ -23,6 +24,9 @@ export interface OrderCardProps {
   total: number;
   imageSource?: ImageSourcePropType;
   onPress?: () => void;
+  onBuyAgain?: () => void;
+  onReview?: () => void;
+  buyAgainLoading?: boolean;
   productSummary?: string;
   statusTone?: StatusBadgeTone;
   style?: StyleProp<ViewStyle>;
@@ -37,6 +41,9 @@ export function OrderCard({
   total,
   imageSource,
   onPress,
+  onBuyAgain,
+  onReview,
+  buyAgainLoading = false,
   productSummary,
   statusTone = 'neutral',
   style,
@@ -77,6 +84,49 @@ export function OrderCard({
         <PriceDisplay direction="row" price={total} />
         {onPress ? <Ionicons color={colors.textSecondary} name="chevron-forward" size={22} /> : null}
       </View>
+      {onBuyAgain || onReview ? (
+        <View style={styles.actions}>
+          {onBuyAgain ? (
+            <Pressable
+              accessibilityLabel="Mua lại đơn hàng"
+              accessibilityRole="button"
+              disabled={buyAgainLoading}
+              onPress={(event) => {
+                event.stopPropagation();
+                onBuyAgain();
+              }}
+              style={({ pressed }) => [
+                styles.actionButton,
+                pressed && styles.actionPressed,
+                buyAgainLoading && styles.actionDisabled,
+              ]}
+            >
+              {buyAgainLoading ? (
+                <ActivityIndicator color={colors.textPrimary} size="small" />
+              ) : (
+                <Text style={styles.buyAgainText}>Mua lại</Text>
+              )}
+            </Pressable>
+          ) : null}
+          {onReview ? (
+            <Pressable
+              accessibilityLabel="Đánh giá đơn hàng"
+              accessibilityRole="button"
+              onPress={(event) => {
+                event.stopPropagation();
+                onReview();
+              }}
+              style={({ pressed }) => [
+                styles.actionButton,
+                styles.reviewActionButton,
+                pressed && styles.reviewActionPressed,
+              ]}
+            >
+              <Text style={styles.reviewActionText}>Đánh giá</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -111,4 +161,30 @@ const styles = StyleSheet.create({
   quantity: { ...typography.bodySmall, color: colors.textSecondary, marginTop: spacing.xs },
   footer: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   totalLabel: { ...typography.bodySmall, flex: 1, color: colors.textSecondary },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    paddingTop: spacing.lg,
+    marginTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  actionButton: {
+    minWidth: 112,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  reviewActionButton: { borderColor: colors.primary },
+  buyAgainText: { ...typography.bodySmallSemibold, color: colors.textPrimary },
+  reviewActionText: { ...typography.bodySmallSemibold, color: colors.primary },
+  actionPressed: { backgroundColor: colors.surfaceMuted },
+  reviewActionPressed: { backgroundColor: colors.primarySoft },
+  actionDisabled: { opacity: 0.6 },
 });

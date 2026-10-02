@@ -39,6 +39,14 @@ Cấu hình rate limit trong `.env`:
 AUTH_RATE_LIMIT_WINDOW_MS=900000
 AUTH_LOGIN_RATE_LIMIT_MAX=10
 AUTH_REFRESH_RATE_LIMIT_MAX=30
+AUTH_FORGOT_PASSWORD_RATE_LIMIT_MAX=5
+PASSWORD_RESET_EXPIRES_MINUTES=10
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=no-reply@example.com
+SMTP_PASSWORD=your_app_password
+SMTP_FROM=DDTECH <no-reply@example.com>
 ```
 
 Chạy kiểm thử tích hợp phần 15:
@@ -74,7 +82,21 @@ Chạy kiểm thử tích hợp phần 14:
 ```bash
 npm run build
 node tests/dashboard.integration.cjs
+node tests/reports.integration.cjs
 ```
+
+## Báo cáo chuyên sâu
+
+Prefix: `/api/admin/reports` (chỉ ADMIN).
+
+- `GET /revenue?from=2026-01-01&to=2026-01-31&groupBy=DAY`
+- `GET /orders?from=2026-01-01&to=2026-01-31&status=DELIVERED`
+- `GET /products?from=2026-01-01&to=2026-01-31&limit=100`
+- `GET /inventory?from=2026-01-01&to=2026-01-31&type=SALE`
+- `GET /export?report=revenue&format=xlsx&from=2026-01-01&to=2026-01-31`
+
+Hỗ trợ tải CSV UTF-8 và XLSX. Nếu không truyền khoảng ngày, mặc định lấy 30 ngày gần
+nhất; khoảng tối đa là 366 ngày.
 
 ## Bước 13: quản lý tồn kho
 
@@ -253,15 +275,18 @@ Các API yêu cầu `Authorization: Bearer <accessToken>`:
 - `POST /api/payments/:orderId/create`
 - `GET /api/payments/:orderId`
 
-`POST` hiện triển khai đầy đủ cho đơn có `paymentMethod: "COD"`. Body phải là
-object rỗng `{}`; backend luôn lấy `amount`, phương thức và trạng thái từ đơn hàng,
-không nhận các giá trị này từ client. Gọi tạo nhiều lần trả lại cùng một payment,
-không tạo giao dịch COD trùng.
+`POST` triển khai cho đơn có `paymentMethod: "COD"` hoặc `"VNPAY"`. Body phải là
+object rỗng `{}`; backend luôn lấy `amount`, phương thức và trạng thái từ đơn hàng.
+VNPAY trả thêm `paymentUrl` và `expiresAt`; URL chưa hết hạn được tái sử dụng.
 
 Khách chỉ xem và tạo payment của đơn thuộc tài khoản mình. Admin được xem payment
-của mọi đơn. Với VNPAY, MOMO và ZALOPAY, API tạo trả `501` cho đến khi cổng thanh
-toán thật được cấu hình. Chưa khai báo callback route để tránh chấp nhận trạng thái
-thanh toán không có chữ ký/checksum hợp lệ.
+của mọi đơn. `GET /api/payments/vnpay/ipn` xác minh HMAC-SHA512, merchant, mã giao
+dịch và số tiền rồi mới đồng bộ `orders`/`payments` trong transaction. Endpoint
+`/vnpay/return` chỉ xác minh kết quả và chuyển người dùng về mobile, không tự cập nhật
+PAID. MOMO và ZALOPAY vẫn trả `501`.
+
+Cần cấu hình `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, `VNPAY_RETURN_URL` và khai báo
+IPN URL HTTPS công khai là `/api/payments/vnpay/ipn` trong trang quản trị VNPAY.
 
 Khi admin chuyển một đơn COD từ `SHIPPING` sang `DELIVERED`, backend cập nhật đồng
 thời `orders.payment_status` và `payments.status` thành `PAID` trong cùng transaction,

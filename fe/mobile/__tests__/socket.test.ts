@@ -1,4 +1,5 @@
 const socketHandlers = new Map<string, (payload: unknown) => void>();
+const mockClearAuthSession = jest.fn().mockResolvedValue(undefined);
 const mockSocket = {
   connected: false,
   connect: jest.fn(),
@@ -11,6 +12,9 @@ const mockSocket = {
 jest.mock('socket.io-client', () => ({
   __esModule: true,
   io: jest.fn(),
+}));
+jest.mock('@/api/authSession', () => ({
+  clearAuthSession: (...args: unknown[]) => mockClearAuthSession(...args),
 }));
 
 import { io } from 'socket.io-client';
@@ -34,6 +38,7 @@ describe('socket realtime manager', () => {
     mockSocket.on.mockClear();
     mockSocket.removeAllListeners.mockClear();
     mockSocket.connected = false;
+    mockClearAuthSession.mockClear();
     mockIo.mockReturnValue(mockSocket as never);
   });
 
@@ -86,5 +91,12 @@ describe('socket realtime manager', () => {
     expect(listener).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledWith(10);
     unsubscribe();
+  });
+
+  test('xóa phiên local ngay khi server thu hồi mọi phiên', () => {
+    connectRealtime('access-token');
+    socketHandlers.get('auth:session_revoked')?.({ reason: 'logout_all' });
+
+    expect(mockClearAuthSession).toHaveBeenCalledWith('invalid');
   });
 });

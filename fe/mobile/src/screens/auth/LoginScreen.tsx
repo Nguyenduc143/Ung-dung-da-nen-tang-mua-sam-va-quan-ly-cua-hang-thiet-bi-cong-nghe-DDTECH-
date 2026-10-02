@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Keyboard, StyleSheet, TextInput } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 
 import { getApiValidationErrors } from '@/api/axiosClient';
 import { PrimaryButton, TextInputField } from '@/components';
 import type { AuthStackParamList } from '@/navigation/types';
 import { useAuthStore } from '@/stores';
-import { spacing } from '@/theme';
+import { colors, spacing, typography } from '@/theme';
 import {
   pickApiFieldErrors,
   toLoginInput,
@@ -30,7 +30,7 @@ export function LoginScreen({ navigation, route }: Props) {
   });
   const [fieldErrors, setFieldErrors] = useState<FormErrors<LoginFormValues>>({});
   const [hasApiFieldErrors, setHasApiFieldErrors] = useState(false);
-  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(Boolean(registeredEmail));
+  const [showSuccess, setShowSuccess] = useState(Boolean(registeredEmail));
   const passwordRef = useRef<TextInput>(null);
 
   const login = useAuthStore((state) => state.login);
@@ -47,7 +47,7 @@ export function LoginScreen({ navigation, route }: Props) {
     setValues((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
     setHasApiFieldErrors(false);
-    setShowRegistrationSuccess(false);
+    setShowSuccess(false);
     clearError();
   };
 
@@ -85,8 +85,13 @@ export function LoginScreen({ navigation, route }: Props) {
       subtitle="Đăng nhập để tiếp tục mua sắm cùng DDTECH"
       title="Chào mừng trở lại"
     >
-      {showRegistrationSuccess ? (
-        <AuthMessage message="Đăng ký thành công. Hãy đăng nhập để bắt đầu mua sắm." tone="success" />
+      {showSuccess ? (
+        <AuthMessage
+          message={route.params?.passwordReset
+            ? 'Đặt lại mật khẩu thành công. Hãy đăng nhập bằng mật khẩu mới.'
+            : 'Đăng ký thành công. Hãy đăng nhập để bắt đầu mua sắm.'}
+          tone="success"
+        />
       ) : null}
       {error && !hasApiFieldErrors ? <AuthMessage message={error} /> : null}
 
@@ -129,6 +134,15 @@ export function LoginScreen({ navigation, route }: Props) {
         textContentType="password"
         value={values.password}
       />
+      <Pressable
+        accessibilityRole="button"
+        disabled={isSubmitting}
+        hitSlop={8}
+        onPress={() => navigation.navigate('ForgotPassword')}
+        style={({ pressed }) => [styles.forgotLink, pressed && styles.pressed]}
+      >
+        <Text style={styles.forgotText}>Quên mật khẩu?</Text>
+      </Pressable>
       <PrimaryButton
         loading={isSubmitting}
         onPress={() => void handleSubmit()}
@@ -141,5 +155,8 @@ export function LoginScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   field: { marginBottom: spacing.lg },
+  forgotLink: { alignSelf: 'flex-end', marginTop: -spacing.sm, marginBottom: spacing.md },
+  forgotText: { ...typography.bodySmallSemibold, color: colors.primary },
+  pressed: { opacity: 0.65 },
   submitButton: { marginTop: spacing.xs },
 });

@@ -46,12 +46,13 @@ export const listMyOrders = async (
       const detail = await getOrderDetail(order.id);
       return {
         ...order,
+        items: detail.items,
         previewItem: detail.items[0] ?? null,
         itemCount: detail.items.length,
         totalQuantity: detail.items.reduce((total, item) => total + item.quantity, 0),
       };
     } catch {
-      return { ...order, previewItem: null, itemCount: 0, totalQuantity: 0 };
+      return { ...order, items: [], previewItem: null, itemCount: 0, totalQuantity: 0 };
     }
   }));
 

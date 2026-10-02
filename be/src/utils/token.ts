@@ -8,6 +8,7 @@ import { AppError } from './app-error';
 interface AuthTokenPayload extends JwtPayload {
   sub: string;
   role: UserRole;
+  ver: number;
 }
 
 interface RefreshTokenResult {
@@ -27,6 +28,7 @@ const signToken = (
     {
       sub: String(user.id),
       role: user.role,
+      ver: user.authVersion,
     },
     secret,
     { expiresIn, keyid: randomUUID(), algorithm: 'HS256' },
@@ -40,7 +42,9 @@ const verifyToken = (token: string, secret: string): AuthTokenPayload => {
       typeof payload === 'string' ||
       typeof payload.sub !== 'string' ||
       !/^\d+$/.test(payload.sub) ||
-      !isUserRole(payload.role)
+      !isUserRole(payload.role) ||
+      !Number.isSafeInteger(payload.ver) ||
+      payload.ver < 0
     ) {
       throw new AppError(401, 'Token không hợp lệ');
     }

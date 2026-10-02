@@ -20,7 +20,22 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().max(86400000).default(900000),
   AUTH_LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().max(1000).default(10),
   AUTH_REFRESH_RATE_LIMIT_MAX: z.coerce.number().int().positive().max(1000).default(30),
+  AUTH_FORGOT_PASSWORD_RATE_LIMIT_MAX: z.coerce.number().int().positive().max(100).default(5),
+  PASSWORD_RESET_EXPIRES_MINUTES: z.coerce.number().int().positive().max(60).default(10),
+  EMAIL_VERIFICATION_EXPIRES_MINUTES: z.coerce.number().int().positive().max(60).default(10),
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().positive().max(65535).default(587),
+  SMTP_SECURE: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASSWORD: z.string().min(1).optional(),
+  SMTP_FROM: z.string().min(1).default('DDTECH <no-reply@ddtech.local>'),
   ADMIN_WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
+  VNPAY_TMN_CODE: z.string().regex(/^[A-Za-z0-9]{8}$/).optional(),
+  VNPAY_HASH_SECRET: z.string().min(1).optional(),
+  VNPAY_PAYMENT_URL: z.string().url().default('https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
+  VNPAY_RETURN_URL: z.string().url().default('http://localhost:5000/api/payments/vnpay/return'),
+  VNPAY_MOBILE_RETURN_URL: z.string().min(1).default('ddtech://payment-result'),
+  VNPAY_EXPIRE_MINUTES: z.coerce.number().int().min(5).max(60).default(15),
 }).superRefine((data, context) => {
   if (data.NODE_ENV !== 'production') return;
 
@@ -39,6 +54,24 @@ const envSchema = z.object({
       path: ['JWT_REFRESH_SECRET'],
       message: 'JWT access secret và refresh secret phải khác nhau ở production',
     });
+  }
+  for (const field of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD'] as const) {
+    if (!data[field]) {
+      context.addIssue({
+        code: 'custom',
+        path: [field],
+        message: `${field} là bắt buộc ở production để gửi mã đặt lại mật khẩu`,
+      });
+    }
+  }
+  for (const field of ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET'] as const) {
+    if (!data[field]) {
+      context.addIssue({
+        code: 'custom',
+        path: [field],
+        message: `${field} là bắt buộc ở production để thanh toán VNPAY`,
+      });
+    }
   }
 });
 

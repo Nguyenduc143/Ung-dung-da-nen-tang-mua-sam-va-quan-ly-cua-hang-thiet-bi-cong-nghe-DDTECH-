@@ -1,5 +1,6 @@
 import {
   AppstoreOutlined,
+  BarChartOutlined,
   BellOutlined,
   DashboardOutlined,
   DatabaseOutlined,
@@ -30,6 +31,7 @@ export const adminNavigation: AdminNavigationItem[] = [
   { path: '/promotions', label: 'Khuyến mãi', icon: <PercentageOutlined /> },
   { path: '/reviews', label: 'Đánh giá', icon: <StarOutlined /> },
   { path: '/notifications', label: 'Thông báo', icon: <BellOutlined /> },
+  { path: '/reports', label: 'Báo cáo thống kê', icon: <BarChartOutlined /> },
 ];
 
 export const adminMenuItems: MenuProps['items'] = adminNavigation.map((item) => ({

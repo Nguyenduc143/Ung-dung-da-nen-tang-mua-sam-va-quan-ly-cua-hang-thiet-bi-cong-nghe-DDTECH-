@@ -20,13 +20,17 @@ ZALOPAY
 
 ## Triển khai
 
-Ưu tiên COD chạy ổn trước.
+COD và VNPAY đã được nối với backend.
 
 Với payment online:
 - tạo payment
 - mở payment flow theo backend/gateway
 - không tự đánh dấu PAID
 - trạng thái phải lấy từ backend
+
+Mobile mở `paymentUrl` bằng `expo-web-browser`, nhận deep link
+`ddtech://payment-result`, rồi tải lại trạng thái từ backend. Ứng dụng không tự đánh
+dấu giao dịch thành công dựa trên Return URL.
 
 > ## Quy tắc chung cho Codex
 >
