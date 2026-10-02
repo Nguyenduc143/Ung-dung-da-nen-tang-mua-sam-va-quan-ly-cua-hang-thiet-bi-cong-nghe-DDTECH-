@@ -26,6 +26,25 @@ export const loginSchema = z
   })
   .strict();
 
+export const forgotPasswordSchema = z.object({ email: emailSchema }).strict();
+
+export const resetPasswordSchema = z
+  .object({
+    email: emailSchema,
+    code: z.string().trim().regex(/^\d{6}$/, 'Mã xác nhận phải gồm 6 chữ số'),
+    newPassword: passwordSchema,
+  })
+  .strict();
+
+export const registrationEmailSchema = z.object({ email: emailSchema }).strict();
+
+export const verifyRegistrationSchema = z
+  .object({
+    email: emailSchema,
+    code: z.string().trim().regex(/^\d{6}$/, 'Mã xác nhận phải gồm 6 chữ số'),
+  })
+  .strict();
+
 export const refreshTokenSchema = z
   .object({
     refreshToken: z.string().min(1, 'Refresh token là bắt buộc').max(4096),
@@ -34,4 +53,8 @@ export const refreshTokenSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type RegistrationEmailInput = z.infer<typeof registrationEmailSchema>;
+export type VerifyRegistrationInput = z.infer<typeof verifyRegistrationSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;

@@ -9,7 +9,7 @@ import {
   subscribeToAuthTokensChanged,
 } from '@/api/authSession';
 import { getApiErrorMessage } from '@/api/axiosClient';
-import type { AuthUser, LoginInput, RegisterInput, TokenPair } from '@/types';
+import type { AuthUser, LoginInput, RegisterData, RegisterInput, TokenPair } from '@/types';
 import { useBadgeStore } from './badgeStore';
 import { useFavoriteStore } from './favoriteStore';
 import { useCartStore } from './cartStore';
@@ -25,7 +25,7 @@ export interface AuthState {
   isSubmitting: boolean;
   error: string | null;
   login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterInput) => Promise<AuthUser>;
+  register: (input: RegisterInput) => Promise<RegisterData>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<number>;
   restoreSession: () => Promise<void>;
@@ -96,9 +96,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isSubmitting: true, error: null });
 
     try {
-      const user = await authApi.register(input);
-      if (!isAllowedCustomer(user)) throw new Error(getAccessDeniedMessage(user));
-      return user;
+      const data = await authApi.register(input);
+      if (!isAllowedCustomer(data.user)) throw new Error(getAccessDeniedMessage(data.user));
+      return data;
     } catch (error) {
       const message = getApiErrorMessage(error, 'Không thể đăng ký. Vui lòng thử lại.');
       set({ error: message });

@@ -6,6 +6,7 @@ import type { AuthenticatedUser } from '../types/auth';
 import { AppError } from '../utils/app-error';
 import type { LoginInput,RegisterInput } from '../validators/auth.validator';
 import { ClientMetadata,createTokenPair } from './auth.shared';
+import { sendVerificationCode } from './emailVerification.service';
 
 export const BCRYPT_ROUNDS = 12;
 
@@ -50,7 +51,8 @@ export const register = async (input: RegisterInput) => {
       throw new Error('Newly registered user could not be loaded');
     }
 
-    return toPublicUser(user);
+    const verification = await sendVerificationCode({ email: user.email });
+    return { user: toPublicUser(user), ...verification };
   } catch (error) {
     if (isDuplicateEntryError(error)) {
       throw new AppError(409, 'Email hoặc số điện thoại đã được sử dụng');
@@ -71,7 +73,15 @@ export const login = async (input: LoginInput, metadata: ClientMetadata) => {
     throw new AppError(403, 'Tài khoản đã bị khóa hoặc ngừng hoạt động');
   }
 
-  const authUser: AuthenticatedUser = { id: user.id, role: user.role };
+  if (user.email_verified_at === null) {
+    throw new AppError(403, 'Email chưa được xác nhận. Vui lòng nhập mã đã gửi tới Gmail');
+  }
+
+  const authUser: AuthenticatedUser = {
+    id: user.id,
+    role: user.role,
+    authVersion: user.auth_version,
+  };
   const tokens = createTokenPair(authUser);
 
   await withTransaction(async (connection) => {

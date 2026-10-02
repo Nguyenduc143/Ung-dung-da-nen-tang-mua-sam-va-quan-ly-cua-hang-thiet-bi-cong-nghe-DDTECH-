@@ -15,8 +15,11 @@ export interface ProductListParams {
 }
 
 export type AuthStackParamList = {
-  Login: { registeredEmail?: string } | undefined;
+  Login: { registeredEmail?: string; passwordReset?: boolean } | undefined;
   Register: undefined;
+  VerifyRegistration: { email: string; developmentCode?: string };
+  ForgotPassword: undefined;
+  ResetPassword: { email: string; developmentCode?: string };
 };
 
 export type MainTabParamList = {
@@ -41,6 +44,7 @@ export type CustomerStackParamList = {
   AddressForm: { addressId?: number } | undefined;
   Checkout: { addressId?: number; cartItemIds?: number[] } | undefined;
   OrderDetail: { orderId: number };
+  OrderReviewProducts: { orderId: number; orderCode: string };
   Notifications: undefined;
   Reviews: { productId: number };
   WriteReview: {

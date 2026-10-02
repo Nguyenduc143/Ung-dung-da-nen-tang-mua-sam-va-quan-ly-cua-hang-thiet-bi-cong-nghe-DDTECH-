@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as WebBrowser from 'expo-web-browser';
 import {
   ActivityIndicator,
   Alert,
@@ -386,11 +387,26 @@ export function OrderDetailScreen({ navigation, route }: Props) {
     setIsCreatingPayment(true);
     setPaymentError(null);
     try {
-      const createdPayment = await paymentsApi.createPayment(orderId);
-      setPayment(createdPayment);
-      Alert.alert('Đã khởi tạo thanh toán', 'Bạn sẽ thanh toán cho nhân viên giao hàng khi nhận đơn.');
+      const result = await paymentsApi.createPayment(orderId);
+      setPayment(result.payment);
+      if (detail?.order.paymentMethod === 'VNPAY') {
+        if (!result.paymentUrl) {
+          setPaymentError('Máy chủ chưa trả về đường dẫn thanh toán VNPAY.');
+          return;
+        }
+        const browserResult = await WebBrowser.openAuthSessionAsync(
+          result.paymentUrl,
+          'ddtech://payment-result',
+        );
+        await Promise.all([loadDetail(true), loadPayment()]);
+        if (browserResult.type !== 'success') {
+          Alert.alert('Chưa hoàn tất thanh toán', 'Bạn có thể nhấn thanh toán lại khi sẵn sàng.');
+        }
+      } else {
+        Alert.alert('Đã khởi tạo thanh toán', 'Bạn sẽ thanh toán cho nhân viên giao hàng khi nhận đơn.');
+      }
     } catch (requestError) {
-      setPaymentError(getApiErrorMessage(requestError, 'Không thể khởi tạo thanh toán COD.'));
+      setPaymentError(getApiErrorMessage(requestError, 'Không thể khởi tạo thanh toán.'));
     } finally {
       setIsCreatingPayment(false);
     }
@@ -513,6 +529,7 @@ export function OrderDetailScreen({ navigation, route }: Props) {
                 onPress={item.productId ? () => navigation.navigate('ProductDetail', { productId: item.productId! }) : undefined}
                 onReview={order.status === 'DELIVERED'
                   && item.productId !== null
+                  && item.isReviewed !== true
                   && items.findIndex((candidate) => candidate.productId === item.productId) === index
                   ? () => navigation.navigate('WriteReview', {
                       productId: item.productId!,
@@ -554,6 +571,16 @@ export function OrderDetailScreen({ navigation, route }: Props) {
               title="Khởi tạo thanh toán COD"
             />
           ) : null}
+          {order.paymentMethod === 'VNPAY'
+            && order.paymentStatus !== 'PAID'
+            && order.paymentStatus !== 'REFUNDED'
+            && order.status !== 'CANCELLED' ? (
+              <SecondaryButton
+                loading={isCreatingPayment}
+                onPress={() => void handleCreatePayment()}
+                title={payment?.status === 'FAILED' ? 'Thử thanh toán VNPAY lại' : 'Thanh toán qua VNPAY'}
+              />
+            ) : null}
           {paymentError ? (
             <View accessibilityRole="alert" style={styles.paymentError}>
               <Text style={styles.paymentErrorText}>{paymentError}</Text>

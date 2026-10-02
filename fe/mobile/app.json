@@ -2,6 +2,7 @@
   "expo": {
     "name": "DDTECH Mobile",
     "slug": "ddtech-mobile",
+    "scheme": "ddtech",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -41,7 +42,8 @@
           "imageWidth": 200,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

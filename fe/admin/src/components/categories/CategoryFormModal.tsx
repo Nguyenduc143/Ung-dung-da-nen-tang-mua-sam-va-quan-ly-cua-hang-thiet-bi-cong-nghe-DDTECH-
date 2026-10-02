@@ -169,12 +169,12 @@ export function CategoryFormModal({
 
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <Form.Item name="parentId" label="Danh mục cha">
+            <Form.Item name="parentId" label="Danh mục">
               <Select
                 allowClear
                 showSearch
                 optionFilterProp="label"
-                placeholder="Không có danh mục cha"
+                placeholder="Không có danh mục"
                 options={categories
                   .filter((item) => !blockedParentIds.has(item.id))
                   .map((item) => ({ value: item.id, label: item.name }))}

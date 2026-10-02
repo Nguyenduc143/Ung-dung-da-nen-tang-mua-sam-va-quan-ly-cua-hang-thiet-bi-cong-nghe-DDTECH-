@@ -43,6 +43,20 @@ export interface LoginInput {
   password: string;
 }
 
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ForgotPasswordData {
+  developmentCode?: string;
+}
+
+export interface ResetPasswordInput {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
 export interface RegisterInput {
   fullName: string;
   email: string;
@@ -60,6 +74,15 @@ export interface CurrentUserData {
 
 export interface RegisterData {
   user: AuthUser;
+  developmentCode?: string;
+}
+
+export interface RegistrationEmailInput {
+  email: string;
+}
+
+export interface VerifyRegistrationInput extends RegistrationEmailInput {
+  code: string;
 }
 
 export interface LogoutAllData {

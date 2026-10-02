@@ -16,18 +16,20 @@ MOMO
 ZALOPAY
 ```
 
-Ban đầu ưu tiên triển khai COD.
+COD và VNPAY 2.1.0 đã được triển khai.
 
 ## API đề xuất
 
 ```http
 POST /api/payments/:orderId/create
 GET  /api/payments/:orderId
-POST /api/payments/vnpay/callback
+GET  /api/payments/vnpay/return
+GET  /api/payments/vnpay/ipn
 POST /api/payments/momo/callback
 ```
 
-Chỉ tạo callback route khi thực sự tích hợp gateway.
+Return URL chỉ điều hướng người dùng. IPN xác minh HMAC-SHA512 và là nơi cập nhật
+trạng thái giao dịch trong transaction.
 
 ## COD
 

@@ -11,6 +11,8 @@ export interface UserRecord extends RowDataPacket {
   avatar_url: string | null;
   role: UserRole;
   status: UserStatus;
+  auth_version: number;
+  email_verified_at: Date | null;
   deleted_at: Date | null;
   created_at: Date;
   updated_at: Date;
@@ -24,6 +26,7 @@ export interface PublicUserRecord extends RowDataPacket {
   avatar_url: string | null;
   role: UserRole;
   status: UserStatus;
+  auth_version: number;
   last_login_at: Date | null;
   created_at: Date;
   updated_at: Date;

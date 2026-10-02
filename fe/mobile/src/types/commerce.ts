@@ -196,9 +196,12 @@ export interface OrderItem {
   quantity: number;
   subtotal: number;
   createdAt: string;
+  reviewId?: number | null;
+  isReviewed?: boolean;
 }
 
 export interface OrderListItem extends CustomerOrder {
+  items: OrderItem[];
   previewItem: OrderItem | null;
   itemCount: number;
   totalQuantity: number;
@@ -257,6 +260,9 @@ export interface PaymentRecord {
 
 export interface CreatePaymentData {
   payment: PaymentRecord;
+  created: boolean;
+  paymentUrl?: string;
+  expiresAt?: string;
 }
 
 export interface PaymentDetailData {

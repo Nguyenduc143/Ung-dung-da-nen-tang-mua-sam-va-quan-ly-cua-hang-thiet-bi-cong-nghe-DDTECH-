@@ -39,8 +39,9 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Invalid user id');
       const user = await findActiveUserById(userId);
       if (!user) throw new Error('Inactive user');
+      if (payload.ver !== user.auth_version) throw new Error('Revoked session');
 
-      socket.data.user = { id: user.id, role: user.role };
+      socket.data.user = { id: user.id, role: user.role, authVersion: user.auth_version };
       next();
     } catch {
       next(new Error('Access token không hợp lệ, đã hết hạn hoặc tài khoản không hoạt động'));

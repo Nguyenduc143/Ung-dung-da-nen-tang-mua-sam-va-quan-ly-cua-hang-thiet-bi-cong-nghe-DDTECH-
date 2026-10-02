@@ -7,6 +7,9 @@ import { createPaymentSchema } from '../validators/payment.validator';
 
 export const paymentRouter = Router();
 
+paymentRouter.get('/vnpay/ipn', paymentController.vnpayIpn);
+paymentRouter.get('/vnpay/return', paymentController.vnpayReturn);
+
 paymentRouter.use(authenticate);
 paymentRouter.post(
   '/:orderId/create',

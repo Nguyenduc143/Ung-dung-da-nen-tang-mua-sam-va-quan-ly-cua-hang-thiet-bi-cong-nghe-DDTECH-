@@ -775,6 +775,52 @@ button, input, textarea, select { font: inherit; }
 .inventory-card .ant-tabs-tab { padding-top: 1rem; padding-bottom: 1rem; }
 .inventory-card .ant-tabs-content-holder { min-width: 0; }
 
+.inventory-card .inventory-variant-table.ant-table-wrapper {
+  position: relative;
+  z-index: 1;
+  overflow-x: auto;
+  border: 1px solid #edf1f6;
+  border-radius: 0.55rem;
+  background: #fff;
+}
+
+.inventory-card .inventory-variant-table .ant-table-thead > tr > th {
+  height: 2.75rem;
+  padding-block: 0.7rem;
+  overflow: visible;
+  line-height: 1.25rem;
+  background: #f8fafc;
+}
+
+.inventory-card .inventory-variant-table .ant-table-cell:first-child {
+  padding-left: 1rem;
+}
+
+.inventory-card .ant-table-body {
+  scrollbar-color: #aeb8c6 #eef2f7;
+  scrollbar-width: thin;
+}
+
+.inventory-card .ant-table-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.inventory-card .ant-table-body::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #eef2f7;
+}
+
+.inventory-card .ant-table-body::-webkit-scrollbar-thumb {
+  border: 2px solid #eef2f7;
+  border-radius: 999px;
+  background: #aeb8c6;
+}
+
+.inventory-card .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: #8491a3;
+}
+
 .inventory-toolbar {
   display: grid;
   grid-template-columns: minmax(14rem, 1fr) minmax(11rem, 14rem) auto;

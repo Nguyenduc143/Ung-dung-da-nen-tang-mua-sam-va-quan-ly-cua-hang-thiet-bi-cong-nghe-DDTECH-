@@ -62,10 +62,10 @@ const { signAccessToken } = require('../dist/utils/token');
     await new Promise((resolve) => httpServer.listen(0, '127.0.0.1', resolve));
     const origin = `http://127.0.0.1:${httpServer.address().port}`;
     const base = `${origin}/api`;
-    const customerToken = signAccessToken({ id: users[0], role: 'CUSTOMER' });
-    const otherCustomerToken = signAccessToken({ id: users[1], role: 'CUSTOMER' });
-    const adminToken = signAccessToken({ id: users[2], role: 'ADMIN' });
-    const lockedToken = signAccessToken({ id: users[3], role: 'CUSTOMER' });
+    const customerToken = signAccessToken({ id: users[0], role: 'CUSTOMER', authVersion: 0 });
+    const otherCustomerToken = signAccessToken({ id: users[1], role: 'CUSTOMER', authVersion: 0 });
+    const adminToken = signAccessToken({ id: users[2], role: 'ADMIN', authVersion: 0 });
+    const lockedToken = signAccessToken({ id: users[3], role: 'CUSTOMER', authVersion: 0 });
 
     async function request(method, path, body, token, expected = 200) {
       const response = await fetch(base + path, {
@@ -184,7 +184,14 @@ const { signAccessToken } = require('../dist/utils/token');
     assert.deepEqual(await customerBroadcast, { productId: 456 });
     assert.deepEqual(await adminBroadcast, { productId: 456 });
 
-    console.log('PASS: notification ownership, unread flow, authenticated sockets and rooms');
+    const revokedEvent = onceEvent(customerSocket, 'auth:session_revoked');
+    await request('POST', '/auth/logout-all', {}, customerToken);
+    assert.deepEqual(await revokedEvent, { reason: 'logout_all' });
+    await request('GET', '/notifications/unread-count', undefined, customerToken, 401);
+    await request('GET', '/notifications/unread-count', undefined, otherCustomerToken);
+    await expectRejected({ token: customerToken });
+
+    console.log('PASS: notification flow, authenticated sockets, rooms and realtime logout-all');
   } finally {
     for (const client of clients) client.close();
     await new Promise((resolve) => io.close(resolve));

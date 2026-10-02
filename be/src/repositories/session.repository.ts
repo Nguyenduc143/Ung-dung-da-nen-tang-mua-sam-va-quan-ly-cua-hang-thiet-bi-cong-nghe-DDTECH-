@@ -6,6 +6,7 @@ export interface RefreshTokenRecord extends RowDataPacket {
   id: number;
   user_id: number;
   role: UserRole;
+  auth_version: number;
 }
 
 export const createRefreshToken = async (
@@ -44,7 +45,10 @@ export const revokeRefreshToken = async (
   return result.affectedRows > 0;
 };
 
-export const revokeAllRefreshTokens = async (userId: number): Promise<number> => {
-  const [result] = await executeProcedure<ResultSetHeader>(pool, 'sp_auth_revokeallrefreshtokens_1', [userId]);
+export const revokeAllRefreshTokens = async (
+  connection: PoolConnection,
+  userId: number,
+): Promise<number> => {
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_auth_revokeallrefreshtokens_1', [userId]);
   return result.affectedRows;
 };
