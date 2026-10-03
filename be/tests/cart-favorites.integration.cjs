@@ -77,8 +77,8 @@ const { signAccessToken } = require('../dist/utils/token');
     server = app.listen(0, '127.0.0.1');
     await new Promise((resolve) => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}/api`;
-    const firstToken = signAccessToken({ id: users[0], role: 'CUSTOMER' });
-    const secondToken = signAccessToken({ id: users[1], role: 'CUSTOMER' });
+    const firstToken = signAccessToken({ id: users[0], role: 'CUSTOMER', authVersion: 0 });
+    const secondToken = signAccessToken({ id: users[1], role: 'CUSTOMER', authVersion: 0 });
 
     async function request(method, path, body, token, expected = 200) {
       const response = await fetch(base + path, {

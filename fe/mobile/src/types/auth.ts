@@ -1,5 +1,6 @@
 export type UserRole = 'CUSTOMER' | 'ADMIN';
 export type UserStatus = 'ACTIVE' | 'LOCKED';
+export type UserGender = 'MALE' | 'FEMALE' | 'OTHER';
 
 export interface AuthUser {
   id: number;
@@ -13,6 +14,25 @@ export interface AuthUser {
   updatedAt: string;
 }
 
+export interface UserProfile extends AuthUser {
+  gender: UserGender | null;
+  dateOfBirth: string | null;
+  lastLoginAt: string | null;
+}
+
+export interface UpdateProfileInput {
+  fullName?: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  gender?: UserGender | null;
+  dateOfBirth?: string | null;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
@@ -21,6 +41,18 @@ export interface TokenPair {
 export interface LoginInput {
   email: string;
   password: string;
+}
+
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export type ForgotPasswordData = Record<string, never>;
+
+export interface ResetPasswordInput {
+  email: string;
+  code: string;
+  newPassword: string;
 }
 
 export interface RegisterInput {
@@ -40,6 +72,16 @@ export interface CurrentUserData {
 
 export interface RegisterData {
   user: AuthUser;
+}
+
+export type RegistrationEmailData = Record<string, never>;
+
+export interface RegistrationEmailInput {
+  email: string;
+}
+
+export interface VerifyRegistrationInput extends RegistrationEmailInput {
+  code: string;
 }
 
 export interface LogoutAllData {

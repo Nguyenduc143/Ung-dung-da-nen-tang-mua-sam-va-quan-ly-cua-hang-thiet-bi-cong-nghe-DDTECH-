@@ -9,12 +9,13 @@ import { clearAuthSession, getRefreshToken, saveTokenPair } from './authSession'
 import { apiClient } from './axiosClient';
 
 export const login = async (input: LoginInput): Promise<LoginData> => {
+  const { remember = true, ...credentials } = input;
   const response = await apiClient.post<ApiResponse<LoginData>>(
     '/auth/login',
-    input,
+    credentials,
     { skipAuthRefresh: true },
   );
-  saveTokenPair(response.data.data);
+  saveTokenPair(response.data.data, remember);
   return response.data.data;
 };
 

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/api/axiosClient';
 import { getProduct } from '@/api/products.api';
 import { listProductReviews } from '@/api/reviews.api';
+import { subscribeCatalogChanges } from '@/socket';
 import type { ProductDetailData, ProductReviewData } from '@/types';
 
 interface ProductDetailState {
@@ -58,6 +59,10 @@ export function useProductDetail(productId: number): ProductDetailState {
       requestIdRef.current += 1;
     };
   }, [load]);
+
+  useEffect(() => subscribeCatalogChanges((changedProductId) => {
+    if (changedProductId === null || changedProductId === productId) void load(true);
+  }), [load, productId]);
 
   return {
     detail,

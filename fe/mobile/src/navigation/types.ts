@@ -6,6 +6,7 @@ export interface ProductListParams {
   title?: string;
   search?: string;
   category?: CatalogFilterValue;
+  categoryRoot?: CatalogFilterValue;
   brand?: CatalogFilterValue;
   minPrice?: number;
   maxPrice?: number;
@@ -15,8 +16,11 @@ export interface ProductListParams {
 }
 
 export type AuthStackParamList = {
-  Login: { registeredEmail?: string } | undefined;
+  Login: { registeredEmail?: string; passwordReset?: boolean } | undefined;
   Register: undefined;
+  VerifyRegistration: { email: string };
+  ForgotPassword: undefined;
+  ResetPassword: { email: string };
 };
 
 export type MainTabParamList = {
@@ -41,9 +45,20 @@ export type CustomerStackParamList = {
   AddressForm: { addressId?: number } | undefined;
   Checkout: { addressId?: number; cartItemIds?: number[] } | undefined;
   OrderDetail: { orderId: number };
+  OrderReviewProducts: { orderId: number; orderCode: string };
   Notifications: undefined;
   Reviews: { productId: number };
-  WriteReview: { productId: number; orderId?: number; reviewId?: number };
+  WriteReview: {
+    productId: number;
+    orderId?: number;
+    reviewId?: number;
+    review?: {
+      id: number;
+      rating: number;
+      comment: string | null;
+      images: string[] | null;
+    };
+  };
   EditProfile: undefined;
   ChangePassword: undefined;
 };

@@ -2,12 +2,18 @@ import type {
   ApiResponse,
   AuthUser,
   CurrentUserData,
+  ForgotPasswordData,
+  ForgotPasswordInput,
   LoginData,
   LoginInput,
   LogoutAllData,
   RegisterData,
+  RegistrationEmailData,
   RegisterInput,
+  RegistrationEmailInput,
+  ResetPasswordInput,
   TokenPair,
+  VerifyRegistrationInput,
 } from '@/types';
 import { apiClient, refreshAuthSession } from './axiosClient';
 
@@ -18,11 +24,45 @@ export const login = async (input: LoginInput): Promise<LoginData> => {
   return response.data.data;
 };
 
-export const register = async (input: RegisterInput): Promise<AuthUser> => {
+export const register = async (input: RegisterInput): Promise<RegisterData> => {
   const response = await apiClient.post<ApiResponse<RegisterData>>('/auth/register', input, {
     skipAuthRefresh: true,
   });
-  return response.data.data.user;
+  return response.data.data;
+};
+
+export const resendRegistrationCode = async (
+  input: RegistrationEmailInput,
+): Promise<RegistrationEmailData> => {
+  const response = await apiClient.post<ApiResponse<RegistrationEmailData>>(
+    '/auth/resend-registration-code',
+    input,
+    { skipAuthRefresh: true },
+  );
+  return response.data.data;
+};
+
+export const verifyRegistration = async (input: VerifyRegistrationInput): Promise<void> => {
+  await apiClient.post<ApiResponse<null>>('/auth/verify-registration', input, {
+    skipAuthRefresh: true,
+  });
+};
+
+export const forgotPassword = async (
+  input: ForgotPasswordInput,
+): Promise<ForgotPasswordData> => {
+  const response = await apiClient.post<ApiResponse<ForgotPasswordData>>(
+    '/auth/forgot-password',
+    input,
+    { skipAuthRefresh: true },
+  );
+  return response.data.data;
+};
+
+export const resetPassword = async (input: ResetPasswordInput): Promise<void> => {
+  await apiClient.post<ApiResponse<null>>('/auth/reset-password', input, {
+    skipAuthRefresh: true,
+  });
 };
 
 export const getCurrentUser = async (): Promise<AuthUser> => {

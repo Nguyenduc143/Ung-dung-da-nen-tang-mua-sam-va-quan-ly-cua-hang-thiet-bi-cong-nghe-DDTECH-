@@ -102,7 +102,23 @@ export const listProducts = async (query: ProductQuery, publicOnly = true) => {
     values.push(search, search, search);
   }
   if (query.category) {
-    if (/^\d+$/.test(query.category)) {
+    const isCategoryId = /^\d+$/.test(query.category);
+    if (query.includeDescendants) {
+      const rootCondition = isCategoryId ? 'id = ?' : 'slug = ?';
+      const visibleCategoryCondition = publicOnly ? " AND status = 'ACTIVE'" : '';
+      conditions.push(`p.category_id IN (
+        WITH RECURSIVE category_tree AS (
+          SELECT id FROM categories
+          WHERE ${rootCondition} AND deleted_at IS NULL${visibleCategoryCondition}
+          UNION ALL
+          SELECT child.id FROM categories child
+          INNER JOIN category_tree parent ON child.parent_id = parent.id
+          WHERE child.deleted_at IS NULL${publicOnly ? " AND child.status = 'ACTIVE'" : ''}
+        )
+        SELECT id FROM category_tree
+      )`);
+      values.push(isCategoryId ? Number(query.category) : query.category);
+    } else if (isCategoryId) {
       conditions.push('p.category_id = ?');
       values.push(Number(query.category));
     } else {

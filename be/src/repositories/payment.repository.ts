@@ -29,6 +29,14 @@ export interface PaymentRecord extends RowDataPacket {
   updatedAt: Date;
 }
 
+export interface VnpayPaymentRecord extends PaymentRecord {
+  orderCode: string;
+  userId: number;
+  orderTotalAmount: string | number;
+  orderPaymentStatus: PaymentStatus;
+  orderStatus: PaymentOrderRecord['orderStatus'];
+}
+
 const PAYMENT_COLUMNS = `id, order_id AS orderId, method, status, amount,
   transaction_code AS transactionCode, gateway_response AS gatewayResponse,
   paid_at AS paidAt, refunded_at AS refundedAt,
@@ -81,6 +89,49 @@ export const createPayment = async (
   const refundedAt = data.status === 'REFUNDED' ? new Date() : null;
   const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_payment_createpayment_1', [data.orderId, data.method, data.status, data.amount, paidAt, refundedAt]);
   return result.insertId;
+};
+
+export const createVnpayPayment = async (
+  connection: PoolConnection,
+  data: {
+    orderId: number;
+    amount: string | number;
+    transactionCode: string;
+    gatewayResponse: unknown;
+  },
+): Promise<number> => {
+  const [result] = await executeProcedure<ResultSetHeader>(connection, 'sp_payment_createvnpay_1', [
+    data.orderId,
+    data.amount,
+    data.transactionCode,
+    JSON.stringify(data.gatewayResponse),
+  ]);
+  return result.insertId;
+};
+
+export const findVnpayPaymentByTransactionForUpdate = async (
+  connection: PoolConnection,
+  transactionCode: string,
+): Promise<VnpayPaymentRecord | null> => {
+  const [rows] = await executeProcedure<VnpayPaymentRecord[]>(
+    connection,
+    'sp_payment_findbytransactionforupdate_1',
+    [transactionCode],
+  );
+  return rows[0] ?? null;
+};
+
+export const updateVnpayPaymentResult = async (
+  connection: PoolConnection,
+  paymentId: number,
+  status: Extract<PaymentStatus, 'PAID' | 'FAILED'>,
+  gatewayResponse: unknown,
+): Promise<void> => {
+  await executeProcedure(connection, 'sp_payment_updatevnpayresult_1', [
+    paymentId,
+    status,
+    JSON.stringify(gatewayResponse),
+  ]);
 };
 
 export const updatePaymentStatus = async (

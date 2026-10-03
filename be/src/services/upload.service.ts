@@ -3,6 +3,8 @@ import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
+  AVATAR_IMAGE_PUBLIC_PATH,
+  AVATAR_IMAGE_UPLOAD_DIR,
   BRAND_IMAGE_PUBLIC_PATH,
   BRAND_IMAGE_UPLOAD_DIR,
   CATEGORY_IMAGE_PUBLIC_PATH,
@@ -15,6 +17,7 @@ import { AppError } from '../utils/app-error';
 const productImageFilenamePattern = /^product-\d+-[0-9a-f-]{36}\.(?:jpg|png|webp)$/i;
 const categoryImageFilenamePattern = /^category-\d+-[0-9a-f-]{36}\.(?:jpg|png|webp)$/i;
 const brandImageFilenamePattern = /^brand-\d+-[0-9a-f-]{36}\.(?:jpg|png|webp)$/i;
+const avatarImageFilenamePattern = /^avatar-\d+-[0-9a-f-]{36}\.(?:jpg|png|webp)$/i;
 
 const imageSignatures = [
   {
@@ -85,6 +88,10 @@ export const storeBrandImage = (file: Express.Multer.File): Promise<StoredProduc
   storeImage(file, BRAND_IMAGE_UPLOAD_DIR, 'brand')
 );
 
+export const storeAvatarImage = (file: Express.Multer.File): Promise<StoredProductImage> => (
+  storeImage(file, AVATAR_IMAGE_UPLOAD_DIR, 'avatar')
+);
+
 const removeStoredImage = async (
   filename: string,
   directory: string,
@@ -111,10 +118,14 @@ export const removeStoredBrandImage = (filename: string): Promise<void> => (
   removeStoredImage(filename, BRAND_IMAGE_UPLOAD_DIR, brandImageFilenamePattern)
 );
 
+export const removeStoredAvatarImage = (filename: string): Promise<void> => (
+  removeStoredImage(filename, AVATAR_IMAGE_UPLOAD_DIR, avatarImageFilenamePattern)
+);
+
 const storedFilenameFromUrl = (imageUrl: string, publicPath: string): string | null => {
   let pathname: string;
   try {
-    pathname = new URL(imageUrl).pathname;
+    pathname = new URL(imageUrl, 'http://local.invalid').pathname;
   } catch {
     return null;
   }
@@ -137,4 +148,9 @@ export const removeStoredCategoryImageByUrl = async (imageUrl: string): Promise<
 export const removeStoredBrandImageByUrl = async (imageUrl: string): Promise<void> => {
   const filename = storedFilenameFromUrl(imageUrl, BRAND_IMAGE_PUBLIC_PATH);
   if (filename) await removeStoredBrandImage(filename);
+};
+
+export const removeStoredAvatarImageByUrl = async (imageUrl: string): Promise<void> => {
+  const filename = storedFilenameFromUrl(imageUrl, AVATAR_IMAGE_PUBLIC_PATH);
+  if (filename) await removeStoredAvatarImage(filename);
 };

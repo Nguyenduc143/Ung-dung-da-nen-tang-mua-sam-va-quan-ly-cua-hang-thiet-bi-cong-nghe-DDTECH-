@@ -775,6 +775,78 @@ button, input, textarea, select { font: inherit; }
 .inventory-card .ant-tabs-tab { padding-top: 1rem; padding-bottom: 1rem; }
 .inventory-card .ant-tabs-content-holder { min-width: 0; }
 
+.inventory-card .inventory-variant-table.ant-table-wrapper {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border: 1px solid #edf1f6;
+  border-radius: 0.55rem;
+  background: #fff;
+}
+
+.inventory-card .inventory-variant-table .ant-table-content {
+  box-sizing: border-box;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  scrollbar-gutter: stable;
+}
+
+.inventory-card .inventory-variant-table .ant-table-content::-webkit-scrollbar {
+  height: 10px;
+}
+
+.inventory-card .inventory-variant-table .ant-table-content::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #eef2f7;
+}
+
+.inventory-card .inventory-variant-table .ant-table-content::-webkit-scrollbar-thumb {
+  border: 2px solid #eef2f7;
+  border-radius: 999px;
+  background: #aeb8c6;
+}
+
+.inventory-card .inventory-variant-table .ant-table-content::-webkit-scrollbar-thumb:hover {
+  background: #8491a3;
+}
+
+.inventory-card .inventory-variant-table .ant-table-thead > tr > th {
+  height: 2.75rem;
+  padding-block: 0.7rem;
+  overflow: visible;
+  line-height: 1.25rem;
+  background: #f8fafc;
+}
+
+.inventory-card .inventory-variant-table .ant-table-cell:first-child {
+  padding-left: 1rem;
+}
+
+.inventory-card .ant-table-body {
+  scrollbar-color: #aeb8c6 #eef2f7;
+  scrollbar-width: thin;
+}
+
+.inventory-card .ant-table-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.inventory-card .ant-table-body::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #eef2f7;
+}
+
+.inventory-card .ant-table-body::-webkit-scrollbar-thumb {
+  border: 2px solid #eef2f7;
+  border-radius: 999px;
+  background: #aeb8c6;
+}
+
+.inventory-card .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: #8491a3;
+}
+
 .inventory-toolbar {
   display: grid;
   grid-template-columns: minmax(14rem, 1fr) minmax(11rem, 14rem) auto;
@@ -850,7 +922,22 @@ button, input, textarea, select { font: inherit; }
 }
 
 .order-detail-main,
-.order-detail-aside { display: grid; gap: 1rem; }
+.order-detail-aside {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.order-detail-main > .ant-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.order-detail-main .ant-table-wrapper {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
 
 .order-detail-aside {
   position: sticky;
@@ -860,7 +947,13 @@ button, input, textarea, select { font: inherit; }
 .order-item-product {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 0.75rem;
+}
+
+.order-item-product .table-primary-cell {
+  flex: 1;
+  min-width: 0;
 }
 
 .order-item-product .ant-avatar {

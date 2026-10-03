@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { listCategories } from '@/api/categories.api';
 import { getApiErrorMessage } from '@/api/axiosClient';
 import { listProducts } from '@/api/products.api';
+import { subscribeCatalogChanges } from '@/socket';
 import type { Category, ProductListItem } from '@/types';
 
 interface HomeData {
@@ -74,6 +75,10 @@ export function useHomeData(): HomeDataState {
       requestIdRef.current += 1;
     };
   }, [load]);
+
+  useEffect(() => subscribeCatalogChanges(() => {
+    void load(true);
+  }), [load]);
 
   return {
     ...data,

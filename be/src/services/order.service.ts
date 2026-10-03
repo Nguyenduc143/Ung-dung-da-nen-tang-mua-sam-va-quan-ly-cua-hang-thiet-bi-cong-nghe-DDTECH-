@@ -197,13 +197,23 @@ export const toOrderItemResponse = (item: orderItemRepository.OrderItemRecord) =
 export const getOrderDetail = async (orderId: number, userId?: number) => {
   const order = await orderRepository.findOrder(orderId, userId);
   if (!order) throw new AppError(404, 'Không tìm thấy đơn hàng');
-  const [items, statusHistory] = await Promise.all([
+  const [items, statusHistory, reviewedProducts] = await Promise.all([
     orderItemRepository.listOrderItems(orderId),
     orderStatusHistoryRepository.listStatusHistory(orderId),
+    userId === undefined
+      ? Promise.resolve([])
+      : orderItemRepository.listReviewedProducts(userId, orderId),
   ]);
+  const reviewByProductId = new Map(reviewedProducts.map((review) => (
+    [review.productId, review.reviewId]
+  )));
   return {
     order: toOrderResponse(order),
-    items: items.map(toOrderItemResponse),
+    items: items.map((item) => ({
+      ...toOrderItemResponse(item),
+      reviewId: item.productId === null ? null : (reviewByProductId.get(item.productId) ?? null),
+      isReviewed: item.productId !== null && reviewByProductId.has(item.productId),
+    })),
     statusHistory: statusHistory.map((history) => ({
       id: history.id,
       fromStatus: history.fromStatus,

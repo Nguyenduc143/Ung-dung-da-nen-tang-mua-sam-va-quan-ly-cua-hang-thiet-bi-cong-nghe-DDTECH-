@@ -30,10 +30,10 @@ const { signAccessToken } = require('../dist/utils/token');
     server = app.listen(0, '127.0.0.1');
     await new Promise((resolve) => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
-    const adminToken = signAccessToken({ id: adminId, role: 'ADMIN' });
-    const customerToken = signAccessToken({ id: customerId, role: 'CUSTOMER' });
-    const staleAdminToken = signAccessToken({ id: customerId, role: 'ADMIN' });
-    const lockedToken = signAccessToken({ id: lockedId, role: 'CUSTOMER' });
+    const adminToken = signAccessToken({ id: adminId, role: 'ADMIN', authVersion: 0 });
+    const customerToken = signAccessToken({ id: customerId, role: 'CUSTOMER', authVersion: 0 });
+    const staleAdminToken = signAccessToken({ id: customerId, role: 'ADMIN', authVersion: 0 });
+    const lockedToken = signAccessToken({ id: lockedId, role: 'CUSTOMER', authVersion: 0 });
 
     async function rawRequest(path, options = {}) {
       const response = await fetch(base + path, options);

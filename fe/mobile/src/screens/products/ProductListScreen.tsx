@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { EmptyState, ErrorState, ProductCard } from '@/components';
+import { EmptyState, ErrorState, ProductCard, ProductListSkeleton } from '@/components';
 import { getApiErrorMessage } from '@/api/axiosClient';
 import { useCatalogData, useProductList } from '@/hooks';
 import type { CustomerStackParamList, ProductListParams } from '@/navigation/types';
@@ -22,6 +22,7 @@ import type { ProductQuery, ProductSort } from '@/types';
 import {
   getProductBadgeText,
   getProductImageSource,
+  getProductAvailability,
   getProductOriginalPrice,
   getProductPrice,
 } from '@/utils';
@@ -29,18 +30,17 @@ import {
   ProductFilterModal,
   type ProductFilterValues,
 } from './components/ProductFilterModal';
-import { ProductListSkeleton } from './components/ProductListSkeleton';
 import {
   ProductSortModal,
   productSortOptions,
 } from './components/ProductSortModal';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'ProductList'>;
-type ProductListFilterState = Omit<ProductListParams, 'title'>;
+type ProductListFilterState = Omit<ProductListParams, 'categoryRoot' | 'title'>;
 
 const getInitialFilters = (params: ProductListParams | undefined): ProductListFilterState => {
   if (!params) return {};
-  const { title: _title, ...filters } = params;
+  const { categoryRoot: _categoryRoot, title: _title, ...filters } = params;
   return filters;
 };
 
@@ -58,6 +58,26 @@ export function ProductListScreen({ navigation, route }: Props) {
     () => new Set(favorites.map((item) => item.product.id)),
     [favorites],
   );
+  const categoryRoot = route.params?.categoryRoot;
+  const parentCategory = useMemo(() => {
+    if (categoryRoot === undefined) return undefined;
+    return categories.find((category) => (
+      String(category.id) === String(categoryRoot) || category.slug === String(categoryRoot)
+    ));
+  }, [categories, categoryRoot]);
+  const rootCategoryValue = parentCategory?.slug ?? categoryRoot;
+  const quickCategories = useMemo(
+    () => parentCategory
+      ? categories.filter((category) => category.parentId === parentCategory.id)
+      : [],
+    [categories, parentCategory],
+  );
+  const filterCategories = useMemo(
+    () => parentCategory
+      ? quickCategories
+      : categories.filter((category) => category.parentId === null),
+    [categories, parentCategory, quickCategories],
+  );
 
   const sort = filters.sort ?? 'newest';
   const query = useMemo<Omit<ProductQuery, 'limit' | 'page'>>(() => ({
@@ -69,7 +89,8 @@ export function ProductListScreen({ navigation, route }: Props) {
     sort,
     featured: filters.featured,
     new: filters.isNew,
-  }), [filters, sort]);
+    includeDescendants: categoryRoot !== undefined && filters.category !== undefined,
+  }), [categoryRoot, filters, sort]);
   const {
     products,
     pagination,
@@ -99,12 +120,10 @@ export function ProductListScreen({ navigation, route }: Props) {
     filters.maxPrice,
     filters.minPrice,
   ]);
-  const quickCategories = useMemo(
-    () => categories.filter((category) => category.parentId === null),
-    [categories],
-  );
+  const hasAdditionalCategoryFilter = filters.category !== undefined
+    && String(filters.category) !== String(rootCategoryValue);
   const activeFilterCount = [
-    filters.category,
+    hasAdditionalCategoryFilter || undefined,
     filters.brand,
     filters.minPrice,
     filters.maxPrice,
@@ -114,12 +133,20 @@ export function ProductListScreen({ navigation, route }: Props) {
   const selectedSortLabel = productSortOptions.find((option) => option.value === sort)?.label
     ?? 'Mới nhất';
 
+  useEffect(() => {
+    setFilters(getInitialFilters(route.params));
+  }, [route.params]);
+
   useLayoutEffect(() => {
     navigation.setOptions({ title: route.params?.title ?? 'Sản phẩm' });
   }, [navigation, route.params?.title]);
 
   const clearProductFilters = () => {
-    setFilters((current) => ({ search: current.search, sort: current.sort }));
+    setFilters((current) => ({
+      category: rootCategoryValue,
+      search: current.search,
+      sort: current.sort,
+    }));
   };
 
   const handleToggleFavorite = async (productId: number) => {
@@ -149,17 +176,22 @@ export function ProductListScreen({ navigation, route }: Props) {
         >
           <Pressable
             accessibilityRole="button"
-            accessibilityState={{ selected: filters.category === undefined }}
-            onPress={() => setFilters((current) => ({ ...current, category: undefined }))}
+            accessibilityState={{
+              selected: String(filters.category) === String(rootCategoryValue),
+            }}
+            onPress={() => setFilters((current) => ({
+              ...current,
+              category: rootCategoryValue,
+            }))}
             style={({ pressed }) => [
               styles.chip,
-              filters.category === undefined && styles.selectedChip,
+              String(filters.category) === String(rootCategoryValue) && styles.selectedChip,
               pressed && styles.pressed,
             ]}
           >
             <Text style={[
               styles.chipText,
-              filters.category === undefined && styles.selectedChipText,
+              String(filters.category) === String(rootCategoryValue) && styles.selectedChipText,
             ]}>
               Tất cả
             </Text>
@@ -253,6 +285,7 @@ export function ProductListScreen({ navigation, route }: Props) {
             description="Hãy thử thay đổi danh mục, thương hiệu hoặc khoảng giá."
             icon="search-outline"
             onAction={activeFilterCount > 0 ? clearProductFilters : undefined}
+            preset="products"
             title="Không tìm thấy sản phẩm"
           />
         )}
@@ -278,8 +311,9 @@ export function ProductListScreen({ navigation, route }: Props) {
         onEndReachedThreshold={0.35}
         onRefresh={() => void refresh()}
         refreshing={isRefreshing}
-        renderItem={({ item }) => (
-          <ProductCard
+        renderItem={({ item }) => {
+          const availability = getProductAvailability(item);
+          return <ProductCard
             badgeText={getProductBadgeText(item)}
             imageSource={getProductImageSource(item)}
             isFavorite={favoriteProductIds.has(item.id)}
@@ -291,15 +325,17 @@ export function ProductListScreen({ navigation, route }: Props) {
             price={getProductPrice(item)}
             rating={item.ratingAvg}
             soldCount={item.soldCount}
+            stateLabel={availability.isPurchasable ? undefined : availability.label}
             style={styles.productCard}
-          />
-        )}
+          />;
+        }}
         showsVerticalScrollIndicator={false}
       />
 
       <ProductFilterModal
         brands={brands}
-        categories={categories}
+        categories={filterCategories}
+        defaultCategory={rootCategoryValue}
         initialValues={filterValues}
         onApply={(values) => {
           setFilters((current) => ({ ...current, ...values }));

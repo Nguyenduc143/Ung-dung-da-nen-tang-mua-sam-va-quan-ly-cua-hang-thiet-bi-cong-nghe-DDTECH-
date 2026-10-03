@@ -7,4 +7,6 @@ export const CATEGORY_IMAGE_UPLOAD_DIR = path.join(UPLOAD_ROOT, 'categories');
 export const CATEGORY_IMAGE_PUBLIC_PATH = '/uploads/categories';
 export const BRAND_IMAGE_UPLOAD_DIR = path.join(UPLOAD_ROOT, 'brands');
 export const BRAND_IMAGE_PUBLIC_PATH = '/uploads/brands';
+export const AVATAR_IMAGE_UPLOAD_DIR = path.join(UPLOAD_ROOT, 'avatars');
+export const AVATAR_IMAGE_PUBLIC_PATH = '/uploads/avatars';
 export const MAX_PRODUCT_IMAGE_SIZE = 5 * 1024 * 1024;

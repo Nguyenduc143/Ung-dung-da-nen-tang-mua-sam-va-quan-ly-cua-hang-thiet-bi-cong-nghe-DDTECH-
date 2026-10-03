@@ -19,6 +19,7 @@ export interface ProductCardProps {
   price: number;
   imageSource?: ImageSourcePropType;
   badgeText?: string;
+  stateLabel?: string;
   disabled?: boolean;
   isFavorite?: boolean;
   isTogglingFavorite?: boolean;
@@ -35,6 +36,7 @@ export function ProductCard({
   price,
   imageSource,
   badgeText,
+  stateLabel,
   disabled = false,
   isFavorite = false,
   isTogglingFavorite = false,
@@ -47,7 +49,7 @@ export function ProductCard({
 }: ProductCardProps) {
   return (
     <Pressable
-      accessibilityLabel={`${name}, giá ${price} đồng`}
+      accessibilityLabel={`${name}, ${stateLabel ?? `giá ${price} đồng`}`}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled || !onPress}
@@ -67,6 +69,9 @@ export function ProductCard({
         )}
         {badgeText ? (
           <View style={styles.badge}><Text style={styles.badgeText}>{badgeText}</Text></View>
+        ) : null}
+        {stateLabel ? (
+          <View style={styles.stateBadge}><Text style={styles.stateBadgeText}>{stateLabel}</Text></View>
         ) : null}
         {onToggleFavorite ? (
           <Pressable
@@ -143,6 +148,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   badgeText: { ...typography.captionSemibold, color: colors.textInverse },
+  stateBadge: {
+    position: 'absolute',
+    right: spacing.sm,
+    bottom: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.round,
+    backgroundColor: colors.overlay,
+  },
+  stateBadgeText: { ...typography.captionSemibold, color: colors.textInverse },
   favoriteButton: {
     position: 'absolute',
     top: spacing.sm,

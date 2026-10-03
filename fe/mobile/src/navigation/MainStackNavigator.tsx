@@ -10,6 +10,7 @@ import {
   FavoritesScreen,
   NotificationsScreen,
   OrderDetailScreen,
+  OrderReviewProductsScreen,
   ProductDetailScreen,
   ProductListScreen,
   ReviewsScreen,
@@ -17,20 +18,36 @@ import {
   WriteReviewScreen,
 } from '@/screens';
 import { colors, fontWeights } from '@/theme';
-import { useCartStore, useFavoriteStore } from '@/stores';
+import { getUnreadNotificationCount } from '@/api/notifications.api';
+import { useAuthStore, useBadgeStore, useCartStore, useFavoriteStore } from '@/stores';
+import { connectRealtime, disconnectRealtime } from '@/socket';
 import { MainTabNavigator } from './MainTabNavigator';
 import type { CustomerStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
 export function MainStackNavigator() {
+  const accessToken = useAuthStore((state) => state.accessToken);
   const loadFavorites = useFavoriteStore((state) => state.loadFavorites);
   const loadCart = useCartStore((state) => state.loadCart);
+  const setUnreadNotificationCount = useBadgeStore((state) => state.setUnreadNotificationCount);
 
   useEffect(() => {
     void loadFavorites().catch(() => undefined);
     void loadCart().catch(() => undefined);
-  }, [loadCart, loadFavorites]);
+    void getUnreadNotificationCount()
+      .then(setUnreadNotificationCount)
+      .catch(() => undefined);
+  }, [loadCart, loadFavorites, setUnreadNotificationCount]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      disconnectRealtime();
+      return undefined;
+    }
+    connectRealtime(accessToken);
+    return disconnectRealtime;
+  }, [accessToken]);
 
   return (
     <Stack.Navigator
@@ -54,6 +71,7 @@ export function MainStackNavigator() {
       <Stack.Screen component={AddressFormScreen} name="AddressForm" options={{ title: 'Thông tin địa chỉ' }} />
       <Stack.Screen component={CheckoutScreen} name="Checkout" options={{ title: 'Thanh toán' }} />
       <Stack.Screen component={OrderDetailScreen} name="OrderDetail" options={{ title: 'Chi tiết đơn hàng' }} />
+      <Stack.Screen component={OrderReviewProductsScreen} name="OrderReviewProducts" options={{ title: 'Sản phẩm cần đánh giá' }} />
       <Stack.Screen component={NotificationsScreen} name="Notifications" options={{ title: 'Thông báo' }} />
       <Stack.Screen component={ReviewsScreen} name="Reviews" options={{ title: 'Đánh giá sản phẩm' }} />
       <Stack.Screen component={WriteReviewScreen} name="WriteReview" options={{ title: 'Viết đánh giá' }} />

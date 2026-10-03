@@ -2,6 +2,7 @@ import { withTransaction } from '../config/database';
 import * as productImageRepository from '../repositories/product-image.repository';
 import * as productVariantRepository from '../repositories/product-variant.repository';
 import * as productRepository from '../repositories/product.repository';
+import { emitToAll } from '../socket';
 import { AppError } from '../utils/app-error';
 import type {
 CreateProductImageInput
@@ -32,11 +33,13 @@ export const createProductImage = async (
   });
   const image = await productImageRepository.findImage(imageId);
   if (!image) throw new Error('Newly created product image could not be loaded');
-  return toImageResponse(image);
+  const response = toImageResponse(image);
+  emitToAll('product:updated', { productId, imageId, action: 'image_created' });
+  return response;
 };
 
 export const deleteProductImage = async (imageId: number): Promise<string> => {
-  return withTransaction(async (connection) => {
+  const deleted = await withTransaction(async (connection) => {
     const image = await productImageRepository.findImage(imageId, connection);
     if (!image) throw new AppError(404, 'Không tìm thấy ảnh sản phẩm');
     await productRepository.lockProduct(image.productId, connection);
@@ -51,8 +54,14 @@ export const deleteProductImage = async (imageId: number): Promise<string> => {
         await productImageRepository.setPrimaryImage(image.productId, replacementId, connection);
       }
     }
-    return image.imageUrl;
+    return { imageUrl: image.imageUrl, productId: image.productId };
   });
+  emitToAll('product:updated', {
+    productId: deleted.productId,
+    imageId,
+    action: 'image_deleted',
+  });
+  return deleted.imageUrl;
 };
 
 export const setPrimaryProductImage = async (imageId: number) => {
@@ -71,5 +80,7 @@ export const setPrimaryProductImage = async (imageId: number) => {
   });
   const image = await productImageRepository.findImage(imageId);
   if (!image || image.productId !== productId) throw new Error('Primary image could not be loaded');
-  return toImageResponse(image);
+  const response = toImageResponse(image);
+  emitToAll('product:updated', { productId, imageId, action: 'primary_image_updated' });
+  return response;
 };

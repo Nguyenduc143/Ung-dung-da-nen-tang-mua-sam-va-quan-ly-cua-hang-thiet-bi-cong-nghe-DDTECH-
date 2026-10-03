@@ -21,6 +21,7 @@ const PromotionFormPage = lazy(() => import('./pages/PromotionFormPage').then((m
 const PromotionsPage = lazy(() => import('./pages/PromotionsPage').then((module) => ({ default: module.PromotionsPage })));
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage').then((module) => ({ default: module.ReviewsPage })));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((module) => ({ default: module.NotificationsPage })));
+const ReportsPage = lazy(() => import('./pages/ReportsPage').then((module) => ({ default: module.ReportsPage })));
 const LoginPage = lazy(() => import('./pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 
 const { Text } = Typography;
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/promotions/:id/edit" element={<PromotionFormPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>

@@ -4,6 +4,7 @@ export type UserStatus = 'ACTIVE' | 'LOCKED';
 export interface AuthenticatedUser {
   id: number;
   role: UserRole;
+  authVersion: number;
 }
 
 declare global {

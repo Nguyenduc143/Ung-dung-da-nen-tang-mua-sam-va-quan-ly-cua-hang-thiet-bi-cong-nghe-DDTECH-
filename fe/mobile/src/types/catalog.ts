@@ -148,6 +148,18 @@ export interface ProductReviewData {
   pagination: ProductPagination;
 }
 
+export interface CreateReviewInput {
+  rating: number;
+  comment?: string | null;
+  images?: string[] | null;
+}
+
+export interface UpdateReviewInput {
+  rating?: number;
+  comment?: string | null;
+  images?: string[] | null;
+}
+
 export interface ProductPagination {
   page: number;
   limit: number;
@@ -163,6 +175,7 @@ export interface ProductListData {
 export interface ProductQuery {
   search?: string;
   category?: number | string;
+  includeDescendants?: boolean;
   brand?: number | string;
   minPrice?: number;
   maxPrice?: number;

@@ -11,6 +11,7 @@ interface StoredTokenPair extends TokenPair {
 }
 
 let cachedTokens: StoredTokenPair | null | undefined;
+let persistTokens = true;
 
 const hasBrowserStorage = (): boolean => typeof window !== 'undefined' && Boolean(window.localStorage);
 
@@ -29,10 +30,16 @@ const readStoredTokens = (): StoredTokenPair | null => {
   if (!hasBrowserStorage()) return null;
 
   try {
-    const rawValue = window.localStorage.getItem(STORAGE_KEY);
+    const localValue = window.localStorage.getItem(STORAGE_KEY);
+    const sessionValue = window.sessionStorage.getItem(STORAGE_KEY);
+    const rawValue = localValue ?? sessionValue;
+    persistTokens = Boolean(localValue);
     const parsedValue: unknown = rawValue ? JSON.parse(rawValue) : null;
     cachedTokens = isStoredTokenPair(parsedValue) ? parsedValue : null;
-    if (rawValue && !cachedTokens) window.localStorage.removeItem(STORAGE_KEY);
+    if (rawValue && !cachedTokens) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.sessionStorage.removeItem(STORAGE_KEY);
+    }
   } catch {
     cachedTokens = null;
     window.localStorage.removeItem(STORAGE_KEY);
@@ -45,14 +52,18 @@ export const getAccessToken = (): string | null => readStoredTokens()?.accessTok
 
 export const getRefreshToken = (): string | null => readStoredTokens()?.refreshToken ?? null;
 
-export const saveTokenPair = (tokens: TokenPair): void => {
+export const saveTokenPair = (tokens: TokenPair, persistent = persistTokens): void => {
+  persistTokens = persistent;
   cachedTokens = {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
     version: 1,
   };
   if (hasBrowserStorage()) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedTokens));
+    const primaryStorage = persistent ? window.localStorage : window.sessionStorage;
+    const secondaryStorage = persistent ? window.sessionStorage : window.localStorage;
+    primaryStorage.setItem(STORAGE_KEY, JSON.stringify(cachedTokens));
+    secondaryStorage.removeItem(STORAGE_KEY);
   }
 };
 
@@ -64,6 +75,7 @@ export const clearAuthSession = (
   if (!hasBrowserStorage()) return;
 
   window.localStorage.removeItem(STORAGE_KEY);
+  window.sessionStorage.removeItem(STORAGE_KEY);
   if (notify) {
     window.dispatchEvent(new CustomEvent<AuthSessionClearReason>(
       AUTH_SESSION_CLEARED_EVENT,

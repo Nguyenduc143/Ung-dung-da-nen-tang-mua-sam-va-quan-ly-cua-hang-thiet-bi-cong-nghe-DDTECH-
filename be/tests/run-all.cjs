@@ -13,6 +13,7 @@ const tests = [
   'notifications-socket.integration.cjs',
   'inventory.integration.cjs',
   'dashboard.integration.cjs',
+  'reports.integration.cjs',
   'security-validation.integration.cjs',
 ];
 

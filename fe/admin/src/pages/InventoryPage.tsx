@@ -235,6 +235,10 @@ export function InventoryPage() {
     { title: 'Tồn kho', dataIndex: 'stock', key: 'stock', width: 100, align: 'center' },
     { title: 'Đã bán', dataIndex: 'soldCount', key: 'soldCount', width: 100, align: 'center' },
     { title: 'Tình trạng', key: 'stockStatus', width: 115, render: (_, record) => stockTag(record.stock, threshold) },
+    {
+      title: 'Trạng thái', dataIndex: 'status', key: 'status', width: 115,
+      render: (value: ProductStatus) => <Tag color={value === 'ACTIVE' ? 'success' : 'default'}>{value === 'ACTIVE' ? 'Đang bán' : 'Ngừng bán'}</Tag>,
+    },
     { title: 'Cập nhật', dataIndex: 'updatedAt', key: 'updatedAt', width: 145, render: (value: string) => dayjs(value).format('DD/MM/YYYY HH:mm') },
     {
       title: 'Thao tác', key: 'actions', width: 100,
@@ -321,10 +325,26 @@ export function InventoryPage() {
         <Button icon={<ReloadOutlined />} onClick={() => void loadInventory()}>Làm mới</Button>
       </div>
       <Table<InventoryProduct>
-        rowKey="id" columns={productColumns} dataSource={products} loading={inventoryLoading} scroll={{ x: 980 }}
+        rowKey="id"
+        columns={productColumns}
+        dataSource={products}
+        loading={inventoryLoading}
+        sticky
+        scroll={{ x: 980, y: 'max(18rem, calc(100vh - 22rem))' }}
         expandable={{
-          rowExpandable: (record) => record.hasVariants,
-          expandedRowRender: (record) => <Table<InventoryVariant> rowKey="id" size="small" columns={variantColumns(record)} dataSource={record.variants} pagination={false} locale={{ emptyText: 'Sản phẩm chưa có phiên bản' }} />,
+          rowExpandable: (record) => record.hasVariants && record.variants.length > 0,
+          expandedRowRender: (record) => (
+            <Table<InventoryVariant>
+              className="inventory-variant-table"
+              rowKey="id"
+              size="small"
+              columns={variantColumns(record)}
+              dataSource={record.variants}
+              pagination={false}
+              scroll={{ x: 955 }}
+              locale={{ emptyText: 'Sản phẩm chưa có phiên bản' }}
+            />
+          ),
         }}
         pagination={{
           current: page, pageSize, total, showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100],

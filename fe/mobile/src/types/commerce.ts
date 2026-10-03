@@ -88,6 +88,14 @@ export interface FavoriteListData {
 }
 
 export type PaymentMethod = 'COD' | 'VNPAY' | 'MOMO' | 'ZALOPAY';
+export type PaymentStatus = 'UNPAID' | 'PAID' | 'FAILED' | 'REFUNDED';
+export type OrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PROCESSING'
+  | 'SHIPPING'
+  | 'DELIVERED'
+  | 'CANCELLED';
 
 export interface ShippingMethod {
   id: number;
@@ -133,8 +141,8 @@ export interface CheckoutOrder {
   discountAmount: number;
   totalAmount: number;
   paymentMethod: PaymentMethod;
-  paymentStatus: 'UNPAID' | 'PAID' | 'FAILED' | 'REFUNDED';
-  status: 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
+  paymentStatus: PaymentStatus;
+  status: OrderStatus;
 }
 
 export interface CheckoutResult {
@@ -146,4 +154,125 @@ export interface CheckoutResult {
     quantity: number;
     subtotal: number;
   }>;
+}
+
+export interface CustomerOrder {
+  id: number;
+  orderCode: string;
+  userId: number;
+  customer: { id: number; fullName: string; email: string; phone: string | null };
+  receiverName: string;
+  receiverPhone: string;
+  shippingAddress: string;
+  shippingMethod: { id: number; code: string | null; name: string | null } | null;
+  promotionId: number | null;
+  promotionCode: string | null;
+  subtotal: number;
+  shippingFee: number;
+  discountAmount: number;
+  totalAmount: number;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  status: OrderStatus;
+  note: string | null;
+  cancelReason: string | null;
+  confirmedAt: string | null;
+  deliveredAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderItem {
+  id: number;
+  productId: number | null;
+  variantId: number | null;
+  productName: string;
+  productSku: string;
+  productImage: string | null;
+  variantName: string | null;
+  originalPrice: number;
+  price: number;
+  quantity: number;
+  subtotal: number;
+  createdAt: string;
+  reviewId?: number | null;
+  isReviewed?: boolean;
+}
+
+export interface OrderListItem extends CustomerOrder {
+  items: OrderItem[];
+  previewItem: OrderItem | null;
+  itemCount: number;
+  totalQuantity: number;
+}
+
+export interface OrderPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface OrderListData {
+  orders: CustomerOrder[];
+  pagination: OrderPagination;
+}
+
+export interface OrderDetailData {
+  order: CustomerOrder;
+  items: OrderItem[];
+  statusHistory: Array<{
+    id: number;
+    fromStatus: OrderStatus | null;
+    toStatus: OrderStatus;
+    changedBy: number | null;
+    changedByName: string | null;
+    note: string | null;
+    createdAt: string;
+  }>;
+}
+
+export interface CustomerOrderQuery {
+  page?: number;
+  limit?: number;
+  status?: OrderStatus;
+}
+
+export interface CustomerOrderListData {
+  orders: OrderListItem[];
+  pagination: OrderPagination;
+}
+
+export interface PaymentRecord {
+  id: number;
+  orderId: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  amount: number;
+  transactionCode: string | null;
+  gatewayResponse: unknown;
+  paidAt: string | null;
+  refundedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePaymentData {
+  payment: PaymentRecord;
+  created: boolean;
+  paymentUrl?: string;
+  expiresAt?: string;
+}
+
+export interface PaymentDetailData {
+  order: {
+    id: number;
+    orderCode: string;
+    totalAmount: number;
+    paymentMethod: PaymentMethod;
+    paymentStatus: PaymentStatus;
+    orderStatus: OrderStatus;
+  };
+  payment: PaymentRecord;
 }

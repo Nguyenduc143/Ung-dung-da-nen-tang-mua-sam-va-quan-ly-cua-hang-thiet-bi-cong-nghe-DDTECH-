@@ -183,6 +183,7 @@ export const productQuerySchema = z
   .object({
     search: z.string().trim().max(255).optional(),
     category: z.string().trim().min(1).max(280).optional(),
+    includeDescendants: queryBoolean.optional(),
     brand: z.string().trim().min(1).max(280).optional(),
     status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
     minPrice: z.coerce.number().finite().min(0).max(MAX_MONEY).optional(),

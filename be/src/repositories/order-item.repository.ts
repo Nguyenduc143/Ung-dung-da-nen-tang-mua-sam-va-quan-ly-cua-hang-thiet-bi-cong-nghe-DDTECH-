@@ -17,6 +17,11 @@ export interface OrderItemRecord extends RowDataPacket {
   createdAt: Date;
 }
 
+export interface ReviewedOrderProductRecord extends RowDataPacket {
+  productId: number;
+  reviewId: number;
+}
+
 export const createOrderItem = async (
   connection: PoolConnection,
   data: {
@@ -52,5 +57,17 @@ export const listOrderItems = async (
 ): Promise<OrderItemRecord[]> => {
   const executor = connection ?? pool;
   const [rows] = await executeProcedure<OrderItemRecord[]>(executor, 'sp_order_listorderitems_1', [orderId]);
+  return rows;
+};
+
+export const listReviewedProducts = async (
+  userId: number,
+  orderId: number,
+): Promise<ReviewedOrderProductRecord[]> => {
+  const [rows] = await executeProcedure<ReviewedOrderProductRecord[]>(
+    pool,
+    'sp_order_listreviewedproducts_1',
+    [userId, orderId],
+  );
   return rows;
 };

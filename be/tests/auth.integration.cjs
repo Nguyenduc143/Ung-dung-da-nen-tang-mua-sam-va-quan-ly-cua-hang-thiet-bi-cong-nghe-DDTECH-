@@ -38,11 +38,24 @@ const { pool } = require('../dist/config/database');
     assert.equal(registered.user.email, email);
     assert.equal(registered.user.role, 'CUSTOMER');
     assert.equal('passwordHash' in registered.user, false);
+    assert.match(registered.developmentCode, /^\d{6}$/);
 
     await request('POST', '/auth/register', {
       fullName: 'Duplicate Email', email, phone: `08${String(Date.now()).slice(-8)}`, password,
     }, undefined, 409);
     await request('POST', '/auth/login', { email, password: 'wrong-password' }, undefined, 401);
+    await request('POST', '/auth/login', { email, password }, undefined, 403);
+    const wrongVerificationCode = String(
+      (Number(registered.developmentCode) + 1) % 1_000_000,
+    ).padStart(6, '0');
+    await request('POST', '/auth/verify-registration', {
+      email, code: wrongVerificationCode,
+    }, undefined, 400);
+    const resentVerification = await request('POST', '/auth/resend-registration-code', { email });
+    assert.match(resentVerification.developmentCode, /^\d{6}$/);
+    await request('POST', '/auth/verify-registration', {
+      email, code: resentVerification.developmentCode,
+    });
 
     const loggedIn = await request('POST', '/auth/login', { email, password });
     assert.ok(loggedIn.accessToken);
@@ -76,17 +89,36 @@ const { pool } = require('../dist/config/database');
     }, undefined, 401);
 
     const secondLogin = await request('POST', '/auth/login', { email, password });
+    const thirdLogin = await request('POST', '/auth/login', { email, password });
     await request('POST', '/auth/logout-all', {}, secondLogin.accessToken);
+    await request('GET', '/auth/me', undefined, secondLogin.accessToken, 401);
+    await request('GET', '/auth/me', undefined, thirdLogin.accessToken, 401);
     await request('POST', '/auth/refresh-token', {
       refreshToken: secondLogin.refreshToken,
     }, undefined, 401);
+    await request('POST', '/auth/refresh-token', {
+      refreshToken: thirdLogin.refreshToken,
+    }, undefined, 401);
 
-    const lockedLogin = await request('POST', '/auth/login', { email, password });
+    const forgot = await request('POST', '/auth/forgot-password', { email });
+    assert.match(forgot.developmentCode, /^\d{6}$/);
+    const wrongCode = String((Number(forgot.developmentCode) + 1) % 1_000_000).padStart(6, '0');
+    await request('POST', '/auth/reset-password', {
+      email, code: wrongCode, newPassword: 'NewPassword123!',
+    }, undefined, 400);
+    await request('POST', '/auth/reset-password', {
+      email, code: forgot.developmentCode, newPassword: 'NewPassword123!',
+    });
+    await request('POST', '/auth/login', { email, password }, undefined, 401);
+
+    const lockedLogin = await request('POST', '/auth/login', {
+      email, password: 'NewPassword123!',
+    });
     await pool.execute("UPDATE users SET status = 'LOCKED' WHERE id = ?", [userId]);
     await request('GET', '/auth/me', undefined, lockedLogin.accessToken, 401);
-    await request('POST', '/auth/login', { email, password }, undefined, 403);
+    await request('POST', '/auth/login', { email, password: 'NewPassword123!' }, undefined, 403);
 
-    console.log('PASS: auth register, duplicate, login, access, refresh rotation and logout');
+    console.log('PASS: auth email verification, login, refresh, logout and password reset');
   } finally {
     if (server) {
       server.closeAllConnections();
