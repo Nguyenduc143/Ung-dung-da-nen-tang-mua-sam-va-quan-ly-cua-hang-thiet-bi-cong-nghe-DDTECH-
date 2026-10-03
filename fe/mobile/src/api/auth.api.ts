@@ -8,6 +8,7 @@ import type {
   LoginInput,
   LogoutAllData,
   RegisterData,
+  RegistrationEmailData,
   RegisterInput,
   RegistrationEmailInput,
   ResetPasswordInput,
@@ -32,8 +33,8 @@ export const register = async (input: RegisterInput): Promise<RegisterData> => {
 
 export const resendRegistrationCode = async (
   input: RegistrationEmailInput,
-): Promise<ForgotPasswordData> => {
-  const response = await apiClient.post<ApiResponse<ForgotPasswordData>>(
+): Promise<RegistrationEmailData> => {
+  const response = await apiClient.post<ApiResponse<RegistrationEmailData>>(
     '/auth/resend-registration-code',
     input,
     { skipAuthRefresh: true },

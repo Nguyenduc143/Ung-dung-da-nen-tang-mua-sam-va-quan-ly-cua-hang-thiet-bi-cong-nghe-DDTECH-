@@ -14,14 +14,12 @@ import { AuthSwitchLink } from './components/AuthSwitchLink';
 type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
 
 export function ResetPasswordScreen({ navigation, route }: Props) {
-  const [code, setCode] = useState(route.params.developmentCode ?? '');
+  const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string>();
-  const [message, setMessage] = useState(
-    route.params.developmentCode
-      ? `Môi trường phát triển: mã xác nhận là ${route.params.developmentCode}`
-      : 'Nếu email tồn tại, mã xác nhận đã được gửi.',
+  const [message, setMessage] = useState<string | undefined>(
+    'Mã xác nhận đã được gửi tới email của bạn.',
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const passwordRef = useRef<TextInput>(null);
@@ -52,13 +50,12 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
 
   const handleResend = async () => {
     setError(undefined);
+    setMessage(undefined);
     setIsSubmitting(true);
     try {
-      const data = await forgotPassword({ email: route.params.email });
-      if (data.developmentCode) setCode(data.developmentCode);
-      setMessage(data.developmentCode
-        ? `Đã gửi mã mới. Mã phát triển: ${data.developmentCode}`
-        : 'Đã gửi lại mã xác nhận.');
+      await forgotPassword({ email: route.params.email });
+      setCode('');
+      setMessage('Gửi lại mã thành công. Vui lòng kiểm tra email của bạn.');
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
     } finally {
@@ -83,7 +80,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
       {error ? <AuthMessage message={error} /> : null}
       <TextInputField
         autoCapitalize="none"
-        autoComplete="one-time-code"
+        autoComplete="off"
         containerStyle={styles.field}
         editable={!isSubmitting}
         keyboardType="number-pad"
@@ -95,7 +92,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
         placeholder="000000"
         required
         returnKeyType="next"
-        textContentType="oneTimeCode"
+        textContentType="none"
         value={code}
       />
       <TextInputField

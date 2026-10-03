@@ -28,6 +28,7 @@ export interface ProductFilterValues {
 interface ProductFilterModalProps {
   brands: Brand[];
   categories: Category[];
+  defaultCategory?: number | string;
   initialValues: ProductFilterValues;
   visible: boolean;
   onApply: (values: ProductFilterValues) => void;
@@ -66,6 +67,7 @@ function SelectChip({ label, selected, onPress }: SelectChipProps) {
 export function ProductFilterModal({
   brands,
   categories,
+  defaultCategory,
   initialValues,
   visible,
   onApply,
@@ -142,8 +144,11 @@ export function ProductFilterModal({
               <View style={styles.chipRow}>
                 <SelectChip
                   label="Tất cả"
-                  onPress={() => setValues((current) => ({ ...current, category: undefined }))}
-                  selected={values.category === undefined}
+                  onPress={() => setValues((current) => ({
+                    ...current,
+                    category: defaultCategory,
+                  }))}
+                  selected={String(values.category) === String(defaultCategory)}
                 />
                 {categories.map((category) => (
                   <SelectChip
@@ -245,7 +250,7 @@ export function ProductFilterModal({
           <View style={styles.footer}>
             <SecondaryButton
               onPress={() => {
-                setValues({});
+                setValues({ category: defaultCategory });
                 setMinPrice('');
                 setMaxPrice('');
                 setPriceError(undefined);

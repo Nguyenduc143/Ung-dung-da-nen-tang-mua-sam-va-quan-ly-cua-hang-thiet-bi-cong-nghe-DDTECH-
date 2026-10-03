@@ -47,9 +47,7 @@ export interface ForgotPasswordInput {
   email: string;
 }
 
-export interface ForgotPasswordData {
-  developmentCode?: string;
-}
+export type ForgotPasswordData = Record<string, never>;
 
 export interface ResetPasswordInput {
   email: string;
@@ -76,6 +74,16 @@ export interface RegisterData {
   user: AuthUser;
   developmentCode?: string;
 }
+
+export interface RegistrationEmailInput {
+  email: string;
+}
+
+export interface VerifyRegistrationInput extends RegistrationEmailInput {
+  code: string;
+}
+
+export type RegistrationEmailData = Record<string, never>;
 
 export interface RegistrationEmailInput {
   email: string;

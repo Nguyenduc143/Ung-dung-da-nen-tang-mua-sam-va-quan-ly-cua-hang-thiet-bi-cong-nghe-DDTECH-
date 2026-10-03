@@ -115,8 +115,20 @@
   color: #fff;
 }
 .login-form-content { position: relative; z-index: 2; width: min(23rem, 100%); transform: translateX(0.75rem); }
-.login-form-heading { margin-bottom: 1.4rem; }
-.login-form-heading .ant-typography { color: #9fd3ff; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.16em; }
+.login-form-heading {
+  margin-bottom: 1.4rem;
+  padding-top: 0.35rem;
+  overflow: visible;
+}
+.login-form-heading .ant-typography {
+  display: inline-block;
+  padding-top: 0.1rem;
+  color: #9fd3ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+}
 .login-form-heading h2 { margin: 0.3rem 0 0; color: #fff; font-size: 1.55rem; line-height: 1.2; }
 .login-form-panel .ant-form-item { margin-bottom: 1rem; }
 .login-form-panel .ant-form-item-label { padding-bottom: 0.35rem; }

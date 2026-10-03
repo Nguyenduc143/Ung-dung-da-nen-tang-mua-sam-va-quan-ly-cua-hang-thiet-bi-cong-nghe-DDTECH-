@@ -36,14 +36,13 @@ export const sendVerificationCode = async (input: RegistrationEmailInput) => {
     await sendRegistrationVerificationCode({ email: user.email, fullName: user.full_name }, code);
   } catch (error) {
     console.error('Không thể gửi email xác nhận đăng ký:', error);
-    if (env.NODE_ENV === 'production') {
+    if (env.NODE_ENV !== 'test') {
       throw new AppError(503, 'Chưa thể gửi email xác nhận. Vui lòng thử lại sau');
     }
   }
 
-  return {
-    developmentCode: env.NODE_ENV !== 'production' ? code : undefined,
-  };
+  // Chỉ cung cấp mã cho kiểm thử tích hợp, không trả mã cho ứng dụng.
+  return env.NODE_ENV === 'test' ? { developmentCode: code } : {};
 };
 
 export const verifyRegistration = async (input: VerifyRegistrationInput): Promise<void> => {

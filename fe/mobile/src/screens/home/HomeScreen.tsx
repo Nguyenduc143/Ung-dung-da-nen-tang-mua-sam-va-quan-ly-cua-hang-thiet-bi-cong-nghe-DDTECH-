@@ -192,6 +192,7 @@ export function HomeScreen({ navigation }: Props) {
                       name={item.name}
                       onPress={() => rootNavigation?.navigate('ProductList', {
                         category: item.slug,
+                        categoryRoot: item.slug,
                         title: item.name,
                       })}
                     />

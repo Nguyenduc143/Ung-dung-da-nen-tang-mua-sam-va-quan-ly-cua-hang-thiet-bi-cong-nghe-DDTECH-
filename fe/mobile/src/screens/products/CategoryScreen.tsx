@@ -49,9 +49,15 @@ export function CategoryScreen({ navigation }: Props) {
   } = useCatalogData();
 
   const query = normalizeSearch(searchValue);
+  const parentCategories = useMemo(
+    () => categories.filter((category) => category.parentId === null),
+    [categories],
+  );
   const filteredCategories = useMemo(
-    () => query ? categories.filter((category) => includesQuery(category, query)) : categories,
-    [categories, query],
+    () => query
+      ? parentCategories.filter((category) => includesQuery(category, query))
+      : parentCategories,
+    [parentCategories, query],
   );
   const filteredBrands = useMemo(
     () => query ? brands.filter((brand) => includesQuery(brand, query)) : brands,
@@ -62,6 +68,7 @@ export function CategoryScreen({ navigation }: Props) {
   const openCategory = (category: Category) => {
     rootNavigation?.navigate('ProductList', {
       category: category.slug,
+      categoryRoot: category.slug,
       title: category.name,
     });
   };
@@ -128,7 +135,7 @@ export function CategoryScreen({ navigation }: Props) {
           ]}
         >
           <Text style={[styles.tabText, activeTab === 'categories' && styles.activeTabText]}>
-            Danh mục ({categories.length})
+            Danh mục ({parentCategories.length})
           </Text>
         </Pressable>
         <Pressable
@@ -165,7 +172,7 @@ export function CategoryScreen({ navigation }: Props) {
               </View>
             </View>
           ) : (
-            <CategoryTree categories={categories} onCategoryPress={openCategory} />
+            <CategoryTree categories={parentCategories} onCategoryPress={openCategory} />
           )
         ) : (
           <EmptyState

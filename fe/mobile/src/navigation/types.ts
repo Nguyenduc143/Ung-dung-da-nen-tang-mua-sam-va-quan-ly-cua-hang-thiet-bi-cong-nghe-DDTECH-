@@ -6,6 +6,7 @@ export interface ProductListParams {
   title?: string;
   search?: string;
   category?: CatalogFilterValue;
+  categoryRoot?: CatalogFilterValue;
   brand?: CatalogFilterValue;
   minPrice?: number;
   maxPrice?: number;
@@ -17,9 +18,9 @@ export interface ProductListParams {
 export type AuthStackParamList = {
   Login: { registeredEmail?: string; passwordReset?: boolean } | undefined;
   Register: undefined;
-  VerifyRegistration: { email: string; developmentCode?: string };
+  VerifyRegistration: { email: string };
   ForgotPassword: undefined;
-  ResetPassword: { email: string; developmentCode?: string };
+  ResetPassword: { email: string };
 };
 
 export type MainTabParamList = {

@@ -175,6 +175,7 @@ export interface ProductListData {
 export interface ProductQuery {
   search?: string;
   category?: number | string;
+  includeDescendants?: boolean;
   brand?: number | string;
   minPrice?: number;
   maxPrice?: number;
