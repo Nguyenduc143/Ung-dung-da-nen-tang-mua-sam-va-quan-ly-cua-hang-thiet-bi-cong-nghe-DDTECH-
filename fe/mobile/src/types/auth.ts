@@ -72,6 +72,15 @@ export interface CurrentUserData {
 
 export interface RegisterData {
   user: AuthUser;
+  developmentCode?: string;
+}
+
+export interface RegistrationEmailInput {
+  email: string;
+}
+
+export interface VerifyRegistrationInput extends RegistrationEmailInput {
+  code: string;
 }
 
 export type RegistrationEmailData = Record<string, never>;

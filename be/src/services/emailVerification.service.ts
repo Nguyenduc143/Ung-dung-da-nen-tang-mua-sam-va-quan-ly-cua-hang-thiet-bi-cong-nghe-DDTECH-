@@ -22,7 +22,7 @@ const hashesMatch = (left: string, right: string): boolean => {
 export const sendVerificationCode = async (input: RegistrationEmailInput) => {
   const user = await verificationRepository.findUserByEmail(input.email);
   if (!user || user.deleted_at !== null || user.status !== 'ACTIVE' || user.email_verified_at !== null) {
-    return {};
+    return { developmentCode: undefined };
   }
 
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0');

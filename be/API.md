@@ -54,8 +54,12 @@ mặc định.
 
 | Method | URL | Auth | Body | `data` khi thành công | Lỗi chính |
 |---|---|---|---|---|---|
-| POST | `/auth/register` | Public | `fullName`, `email`, `phone`, `password` | `{ user }` | `409`, `422` |
+| POST | `/auth/register` | Public | `fullName`, `email`, `phone`, `password` | `{ user, developmentCode? }` | `409`, `422` |
+| POST | `/auth/verify-registration` | Public | `email`, `code` | `null` | `400`, `422`, `429` |
+| POST | `/auth/resend-registration-code` | Public | `email` | `{ developmentCode? }` | `422`, `429`, `503` |
 | POST | `/auth/login` | Public | `email`, `password` | `{ user, accessToken, refreshToken }` | `401`, `403`, `422`, `429` |
+| POST | `/auth/forgot-password` | Public | `email` | `{ developmentCode? }` | `422`, `429` |
+| POST | `/auth/reset-password` | Public | `email`, `code`, `newPassword` | `null` | `400`, `422`, `429` |
 | POST | `/auth/refresh-token` | Public | `refreshToken` | `{ accessToken, refreshToken }` | `401`, `422`, `429` |
 | POST | `/auth/logout` | Public | `refreshToken` | `null` | `401`, `422` |
 | POST | `/auth/logout-all` | Customer/Admin | Không | `{ revokedCount }` | `401` |
@@ -81,6 +85,7 @@ Database chỉ lưu SHA-256 hash của refresh token.
 |---|---|---|---|---|---|
 | GET | `/users/me` | Customer/Admin | Không | `{ user }` | `401`, `404` |
 | PATCH | `/users/me` | Customer/Admin | Một hoặc nhiều: `fullName`, `phone`, `avatarUrl`, `gender`, `dateOfBirth` | `{ user }` | `401`, `409`, `422` |
+| POST | `/users/me/avatar` | Customer/Admin | `multipart/form-data`: file `image` (JPG/PNG/WEBP, tối đa 5 MB) | `{ user }` | `401`, `413`, `422` |
 | PATCH | `/users/me/password` | Customer/Admin | `currentPassword`, `newPassword` | `null` | `401`, `422` |
 | GET | `/addresses` | Customer/Admin | Không | `{ addresses }` | `401` |
 | POST | `/addresses` | Customer/Admin | Thông tin địa chỉ bên dưới | `{ address }` | `401`, `422` |
@@ -200,6 +205,7 @@ Checkout bằng địa chỉ đã lưu:
 ```json
 {
   "addressId": 1,
+  "cartItemIds": [12, 15],
   "shippingMethodId": 1,
   "promotionCode": "DDTECH10",
   "note": "Giao giờ hành chính",
@@ -209,17 +215,22 @@ Checkout bằng địa chỉ đã lưu:
 
 Có thể thay `addressId` bằng đủ `receiverName`, `receiverPhone`, `province`, `district`,
 `ward`, `addressLine`. Backend khóa tồn kho trong transaction, tự lấy giá và không nhận
-`totalAmount`, `stock` hoặc `paymentStatus` từ client.
+`totalAmount`, `stock` hoặc `paymentStatus` từ client. `cartItemIds` là danh sách item
+được chọn để thanh toán; backend chỉ tạo đơn và xóa các item này. Nếu bỏ qua trường này,
+toàn bộ giỏ hàng được thanh toán để tương thích với client cũ.
 
 ## Payments
 
 | Method | URL | Auth | Body | `data` khi thành công | Lỗi chính |
 |---|---|---|---|---|---|
-| POST | `/payments/:orderId/create` | Customer/Admin | `{}` | `{ payment }` | `401`, `404`, `409`, `422`, `501` |
+| POST | `/payments/:orderId/create` | Customer/Admin | `{}` | COD: `{ payment, created }`; VNPAY: thêm `paymentUrl`, `expiresAt` | `401`, `404`, `409`, `422`, `501`, `503` |
 | GET | `/payments/:orderId` | Customer/Admin | Không | `{ payment, order }` | `401`, `404`, `422` |
+| GET | `/payments/vnpay/ipn` | VNPAY | Query do VNPAY ký | `{ RspCode, Message }` | Luôn phản hồi HTTP 200 |
+| GET | `/payments/vnpay/return` | Public | Query do VNPAY ký | Redirect về `ddtech://payment-result` | `503` nếu thiếu cấu hình |
 
-Hiện tại chỉ COD được triển khai. VNPAY, MOMO và ZALOPAY trả `501` cho tới khi có cấu
-hình cổng và kiểm tra chữ ký callback thực tế.
+COD và VNPAY 2.1.0 đã được triển khai. Backend ký URL bằng HMAC-SHA512, đối chiếu
+checksum, mã merchant, số tiền và trạng thái trong IPN trước khi cập nhật. MOMO và
+ZALOPAY vẫn trả `501`.
 
 ## Promotions
 
@@ -308,6 +319,22 @@ transaction.
 
 Dashboard định nghĩa doanh thu là tổng `orders.total_amount` của đơn `DELIVERED` và
 xếp thời gian theo `delivered_at`.
+
+## Admin Reports
+
+Mọi endpoint yêu cầu quyền `ADMIN`. Nếu không truyền `from` và `to`, hệ thống dùng 30
+ngày gần nhất. Khoảng ngày tối đa 366 ngày.
+
+| Method | URL | Query chính | Kết quả |
+|---|---|---|---|
+| GET | `/admin/reports/revenue` | `from`, `to`, `groupBy=DAY\|MONTH` | Tổng hợp doanh thu đơn đã giao và các điểm thời gian |
+| GET | `/admin/reports/orders` | `from`, `to`, `status`, `page`, `limit<=100` | Danh sách đơn hàng phân trang |
+| GET | `/admin/reports/products` | `from`, `to`, `categoryId`, `brandId`, `limit<=500` | Sản phẩm bán chạy từ snapshot chi tiết đơn |
+| GET | `/admin/reports/inventory` | `from`, `to`, `type`, `productId`, `page`, `limit<=100` | Lịch sử biến động kho phân trang |
+| GET | `/admin/reports/export` | `report`, `format=csv\|xlsx` cùng các bộ lọc tương ứng | Tải file báo cáo |
+
+`report` nhận `revenue`, `orders`, `products` hoặc `inventory`. File export giới hạn
+5.000 dòng để bảo vệ bộ nhớ máy chủ.
 
 ## Chạy test
 

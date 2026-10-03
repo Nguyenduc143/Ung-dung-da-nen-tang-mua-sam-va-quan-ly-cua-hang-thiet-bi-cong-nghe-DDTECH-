@@ -7,6 +7,9 @@ POST /api/promotions/validate
 POST /api/orders
 ```
 
+Gửi `cartItemIds` từ các checkbox đã chọn ở giỏ hàng. Backend chỉ tạo đơn và xóa
+những item này; sản phẩm chưa chọn vẫn nằm trong giỏ.
+
 Dùng thêm shipping API thực tế nếu backend có.
 
 ## Sections
