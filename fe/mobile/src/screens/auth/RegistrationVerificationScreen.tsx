@@ -14,12 +14,10 @@ import { AuthSwitchLink } from './components/AuthSwitchLink';
 type Props = NativeStackScreenProps<AuthStackParamList, 'VerifyRegistration'>;
 
 export function RegistrationVerificationScreen({ navigation, route }: Props) {
-  const [code, setCode] = useState(route.params.developmentCode ?? '');
+  const [code, setCode] = useState('');
   const [error, setError] = useState<string>();
-  const [message, setMessage] = useState(
-    route.params.developmentCode
-      ? `Môi trường phát triển: mã xác nhận là ${route.params.developmentCode}`
-      : 'Mã xác nhận đã được gửi tới Gmail của bạn.',
+  const [message, setMessage] = useState<string | undefined>(
+    'Đã gửi mã xác nhận tới email của bạn.',
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,13 +43,12 @@ export function RegistrationVerificationScreen({ navigation, route }: Props) {
 
   const handleResend = async () => {
     setError(undefined);
+    setMessage(undefined);
     setIsSubmitting(true);
     try {
-      const data = await resendRegistrationCode({ email: route.params.email });
-      if (data.developmentCode) setCode(data.developmentCode);
-      setMessage(data.developmentCode
-        ? `Đã gửi mã mới. Mã phát triển: ${data.developmentCode}`
-        : 'Đã gửi lại mã xác nhận tới Gmail.');
+      await resendRegistrationCode({ email: route.params.email });
+      setCode('');
+      setMessage('Gửi lại mã thành công. Vui lòng kiểm tra email của bạn.');
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
     } finally {
@@ -76,7 +73,7 @@ export function RegistrationVerificationScreen({ navigation, route }: Props) {
       {error ? <AuthMessage message={error} /> : null}
       <TextInputField
         autoCapitalize="none"
-        autoComplete="one-time-code"
+        autoComplete="off"
         containerStyle={styles.field}
         editable={!isSubmitting}
         keyboardType="number-pad"
@@ -91,7 +88,7 @@ export function RegistrationVerificationScreen({ navigation, route }: Props) {
         placeholder="000000"
         required
         returnKeyType="done"
-        textContentType="oneTimeCode"
+        textContentType="none"
         value={code}
       />
       <PrimaryButton

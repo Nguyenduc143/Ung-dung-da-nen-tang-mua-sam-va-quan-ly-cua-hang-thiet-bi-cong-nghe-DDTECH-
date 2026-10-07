@@ -27,6 +27,34 @@ export async function find(kind: CatalogKind, key: number | string, publicOnly =
   const [rows] = await executeDynamicProcedure<CatalogRow[]>(db, 'sp_dynamic_catalog_find_1', `SELECT ${columns(kind)} FROM ${kind} WHERE ${where}${visible}`, [key]);
   return rows[0] ?? null;
 }
+
+export async function listBrandsForCategory(category: string, includeDescendants: boolean) {
+  const numericId = /^\d+$/.test(category);
+  const rootCondition = numericId ? 'id = ?' : 'slug = ?';
+  const categoryCondition = includeDescendants
+    ? `p.category_id IN (
+        WITH RECURSIVE category_tree AS (
+          SELECT id FROM categories WHERE ${rootCondition} AND deleted_at IS NULL AND status = 'ACTIVE'
+          UNION ALL
+          SELECT child.id FROM categories child
+          INNER JOIN category_tree parent ON child.parent_id = parent.id
+          WHERE child.deleted_at IS NULL AND child.status = 'ACTIVE'
+        ) SELECT id FROM category_tree
+      )`
+    : `p.category_id IN (SELECT id FROM categories WHERE ${rootCondition} AND deleted_at IS NULL AND status = 'ACTIVE')`;
+  const [rows] = await executeDynamicProcedure<CatalogRow[]>(pool, 'sp_dynamic_catalog_list_1', `
+    SELECT b.id, b.name, b.slug, b.description, b.logo_url AS logoUrl, b.status,
+           b.created_at AS createdAt, b.updated_at AS updatedAt
+    FROM brands b
+    WHERE b.deleted_at IS NULL AND b.status = 'ACTIVE'
+      AND EXISTS (
+        SELECT 1 FROM products p
+        WHERE p.brand_id = b.id AND p.deleted_at IS NULL AND p.status = 'ACTIVE'
+          AND ${categoryCondition}
+      )
+    ORDER BY b.name, b.id`, [numericId ? Number(category) : category]);
+  return rows;
+}
 export async function save(kind: CatalogKind, data: Record<string, unknown>, id: number | undefined, db: Executor) {
   const map: Record<string, string> = fields[kind];
   const entries = Object.entries(data).filter(([key, value]) => key in map && value !== undefined);

@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { listBrands } from '@/api/brands.api';
+import { getApiErrorMessage } from '@/api/axiosClient';
 
 import { PrimaryButton, SecondaryButton, TextInputField } from '@/components';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -28,6 +30,8 @@ export interface ProductFilterValues {
 interface ProductFilterModalProps {
   brands: Brand[];
   categories: Category[];
+  defaultCategory?: number | string;
+  includeDescendants?: boolean;
   initialValues: ProductFilterValues;
   visible: boolean;
   onApply: (values: ProductFilterValues) => void;
@@ -66,6 +70,8 @@ function SelectChip({ label, selected, onPress }: SelectChipProps) {
 export function ProductFilterModal({
   brands,
   categories,
+  defaultCategory,
+  includeDescendants = false,
   initialValues,
   visible,
   onApply,
@@ -76,6 +82,34 @@ export function ProductFilterModal({
   const [minPrice, setMinPrice] = useState(initialValues.minPrice?.toString() ?? '');
   const [maxPrice, setMaxPrice] = useState(initialValues.maxPrice?.toString() ?? '');
   const [priceError, setPriceError] = useState<string | undefined>();
+  const [categoryBrands, setCategoryBrands] = useState<Brand[]>([]);
+  const [brandsLoading, setBrandsLoading] = useState(false);
+  const [brandsError, setBrandsError] = useState<string>();
+
+  useEffect(() => {
+    if (!visible || values.category === undefined) return;
+    let cancelled = false;
+    setCategoryBrands([]);
+    setBrandsLoading(true);
+    setBrandsError(undefined);
+    void listBrands(values.category, includeDescendants).then((data) => {
+      if (cancelled) return;
+      setCategoryBrands(data);
+      setValues((current) => ({
+        ...current,
+        brand: current.brand === undefined || data.some((brand) => (
+          String(brand.id) === String(current.brand) || brand.slug === String(current.brand)
+        )) ? current.brand : undefined,
+      }));
+    }).catch((error: unknown) => {
+      if (!cancelled) setBrandsError(getApiErrorMessage(error));
+    }).finally(() => {
+      if (!cancelled) setBrandsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [visible, values.category, includeDescendants]);
+
+  const visibleBrands = values.category === undefined ? brands : categoryBrands;
 
   useEffect(() => {
     if (!visible) return;
@@ -86,6 +120,7 @@ export function ProductFilterModal({
   }, [initialValues, visible]);
 
   const handleApply = () => {
+    if (values.category !== undefined && (brandsLoading || brandsError)) return;
     const parsedMinPrice = toOptionalNumber(minPrice);
     const parsedMaxPrice = toOptionalNumber(maxPrice);
     if (
@@ -142,8 +177,11 @@ export function ProductFilterModal({
               <View style={styles.chipRow}>
                 <SelectChip
                   label="Tất cả"
-                  onPress={() => setValues((current) => ({ ...current, category: undefined }))}
-                  selected={values.category === undefined}
+                  onPress={() => setValues((current) => ({
+                    ...current,
+                    category: defaultCategory,
+                  }))}
+                  selected={String(values.category) === String(defaultCategory)}
                 />
                 {categories.map((category) => (
                   <SelectChip
@@ -160,6 +198,11 @@ export function ProductFilterModal({
             </ScrollView>
 
             <Text style={styles.sectionTitle}>Thương hiệu</Text>
+            {values.category !== undefined && brandsLoading ? <Text>Đang tải thương hiệu...</Text> : null}
+            {values.category !== undefined && brandsError ? <Text accessibilityRole="alert">{brandsError}</Text> : null}
+            {values.category !== undefined && !brandsLoading && !brandsError && categoryBrands.length === 0
+              ? <Text>Danh mục này chưa có thương hiệu.</Text>
+              : null}
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.chipRow}>
                 <SelectChip
@@ -167,7 +210,7 @@ export function ProductFilterModal({
                   onPress={() => setValues((current) => ({ ...current, brand: undefined }))}
                   selected={values.brand === undefined}
                 />
-                {brands.map((brand) => (
+                {visibleBrands.map((brand) => (
                   <SelectChip
                     key={brand.id}
                     label={brand.name}
@@ -245,7 +288,7 @@ export function ProductFilterModal({
           <View style={styles.footer}>
             <SecondaryButton
               onPress={() => {
-                setValues({});
+                setValues({ category: defaultCategory });
                 setMinPrice('');
                 setMaxPrice('');
                 setPriceError(undefined);

@@ -47,10 +47,10 @@ export function LoginPage() {
               <span className="brand-petal brand-petal--right" />
               <ApiOutlined />
             </div>
-            <h1 id="login-title">DDTECH ADMIN PANEL</h1>
-            <p>Quản lý cửa hàng công nghệ của bạn</p>
+            <h1 id="login-title">DDTECH ADMIN</h1>
+            <p>Nền tảng quản trị bán hàng thông minh</p>
           </div>
-          <p className="login-intro-footer">Hệ thống quản trị và bán hàng kỹ thuật số</p>
+          <p className="login-intro-footer">Chuẩn hóa quy trình – Nâng tầm thương hiệu</p>
         </section>
 
         <section className="login-form-panel" aria-label="Đăng nhập quản trị">

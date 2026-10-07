@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import {
   DeleteOutlined,
   EditOutlined,
@@ -97,7 +98,7 @@ export function ProductVariantsPanel({
       width: 220,
       render: (value: string, record) => (
         <div className="category-name-cell">
-          <Avatar shape="square" src={record.imageUrl || undefined}>{value.slice(0, 1)}</Avatar>
+          <Avatar shape="square" src={resolveMediaUrl(record.imageUrl || undefined)}>{value.slice(0, 1)}</Avatar>
           <div className="table-primary-cell"><strong>{value}</strong><span>{record.sku}</span></div>
         </div>
       ),

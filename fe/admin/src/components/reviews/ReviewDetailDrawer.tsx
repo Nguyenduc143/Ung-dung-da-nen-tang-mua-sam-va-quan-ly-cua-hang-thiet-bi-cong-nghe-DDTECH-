@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import {
   CheckCircleFilled,
   ShoppingFilled,
@@ -40,7 +41,7 @@ export function ReviewDetailDrawer({ review, onClose }: ReviewDetailDrawerProps)
       {review && (
         <div className="review-detail-content">
           <div className="review-detail-user">
-            <Avatar size={52} src={review.user.avatarUrl || undefined} icon={<UserOutlined />} />
+            <Avatar size={52} src={resolveMediaUrl(review.user.avatarUrl || undefined)} icon={<UserOutlined />} />
             <div>
               <Title level={4}>{review.user.fullName}</Title>
               <Space wrap>
@@ -69,7 +70,7 @@ export function ReviewDetailDrawer({ review, onClose }: ReviewDetailDrawerProps)
               <Image.PreviewGroup>
                 <div className="review-image-grid">
                   {review.images.map((imageUrl, index) => (
-                    <ImagePreview key={`${imageUrl}-${index}`} src={imageUrl} alt={`Ảnh đánh giá ${index + 1}`} />
+                    <ImagePreview key={`${imageUrl}-${index}`} src={resolveMediaUrl(imageUrl)} alt={`Ảnh đánh giá ${index + 1}`} />
                   ))}
                 </div>
               </Image.PreviewGroup>

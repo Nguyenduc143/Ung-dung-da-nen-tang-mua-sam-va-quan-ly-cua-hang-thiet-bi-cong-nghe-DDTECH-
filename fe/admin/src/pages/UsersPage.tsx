@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import {
   EyeOutlined,
   LockOutlined,
@@ -120,7 +121,7 @@ export function UsersPage() {
       title: 'Người dùng', key: 'user', width: 290,
       render: (_, record) => (
         <div className="user-identity-cell">
-          <Avatar size={46} src={record.avatarUrl || undefined} icon={!record.fullName ? <UserOutlined /> : undefined}>{record.fullName ? initials(record.fullName) : null}</Avatar>
+          <Avatar size={46} src={resolveMediaUrl(record.avatarUrl || undefined)} icon={!record.fullName ? <UserOutlined /> : undefined}>{record.fullName ? initials(record.fullName) : null}</Avatar>
           <div className="table-primary-cell"><strong>{record.fullName}</strong><span>{record.email}</span></div>
         </div>
       ),

@@ -7,6 +7,7 @@ import { colors } from '@/theme';
 import { AuthLoadingScreen } from './AuthLoadingScreen';
 import { AuthNavigator } from './AuthNavigator';
 import { MainStackNavigator } from './MainStackNavigator';
+import { rootNavigationRef } from './authNavigation';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -36,13 +37,16 @@ export function RootNavigator() {
   if (!isInitialized) return <AuthLoadingScreen />;
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer ref={rootNavigationRef} theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <Stack.Screen component={MainStackNavigator} name="Customer" />
-        ) : (
-          <Stack.Screen component={AuthNavigator} name="Auth" />
-        )}
+        <Stack.Screen component={MainStackNavigator} name="Customer" />
+        {!isAuthenticated ? (
+          <Stack.Screen
+            component={AuthNavigator}
+            name="Auth"
+            options={{ headerShown: true, title: 'Đăng nhập', headerBackButtonDisplayMode: 'minimal' }}
+          />
+        ) : null}
       </Stack.Navigator>
     </NavigationContainer>
   );

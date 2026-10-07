@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -17,15 +18,17 @@ import { getApiErrorMessage } from '@/api/axiosClient';
 import { ErrorState, PriceDisplay, PrimaryButton, RatingStars, SecondaryButton } from '@/components';
 import { useProductDetail } from '@/hooks';
 import type { CustomerStackParamList } from '@/navigation/types';
-import { useCartStore, useFavoriteStore } from '@/stores';
+import { requireLogin } from '@/navigation/authNavigation';
+import { useAuthStore, useCartStore, useFavoriteStore } from '@/stores';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type { ProductVariant } from '@/types';
-import { getProductAvailability } from '@/utils';
+import { getProductAvailability, getVariantAvailability } from '@/utils';
 import { ProductDetailSkeleton } from './components/ProductDetailSkeleton';
 import { ProductGallery, type GalleryImage } from './components/ProductGallery';
 import { PurchaseOptionsModal, type PurchaseOptionAction } from './components/PurchaseOptionsModal';
 import { ReviewPreview } from './components/ReviewPreview';
 import { SpecificationList } from './components/SpecificationList';
+import { VariantSelector } from './components/VariantSelector';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'ProductDetail'>;
 type PurchaseAction = 'cart' | 'buy' | null;
@@ -40,6 +43,9 @@ const discountPercent = (price: number, salePrice: number | null): number => {
 };
 
 export function ProductDetailScreen({ navigation, route }: Props) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isFocused = useIsFocused();
+  const pendingPurchase = useRef<PurchaseOptionAction | null>(null);
   const productId = route.params.productId;
   const {
     detail,
@@ -64,11 +70,21 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   const [optionAction, setOptionAction] = useState<PurchaseOptionAction | null>(null);
 
   useEffect(() => {
+    if (!isFocused) return;
+    if (isAuthenticated && pendingPurchase.current) {
+      setQuantity(1);
+      setOptionAction(pendingPurchase.current);
+    }
+    pendingPurchase.current = null;
+  }, [isAuthenticated, isFocused]);
+
+  useEffect(() => {
     setSelectedVariant(null);
     setQuantity(1);
   }, [detail]);
 
   const handleFavorite = async () => {
+    if (!requireLogin()) return;
     try {
       await toggleFavorite(productId);
     } catch (favoriteError) {
@@ -134,17 +150,27 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   }
 
   const { product, category, brand, specifications, variants } = detail;
-  const displayedPrice = product.price;
-  const displayedSalePrice = product.salePrice;
+  const selectedAttributes = selectedVariant?.attributes;
+  const displayedName = typeof selectedAttributes?.['Model tại nguồn'] === 'string'
+    ? selectedAttributes['Model tại nguồn']
+    : product.name;
+  const displayedPrice = selectedVariant?.price ?? product.price;
+  const displayedSalePrice = selectedVariant ? selectedVariant.salePrice : product.salePrice;
   const currentPrice = effectivePrice(displayedPrice, displayedSalePrice);
   const originalPrice = currentPrice < displayedPrice ? displayedPrice : null;
   const discount = discountPercent(displayedPrice, displayedSalePrice);
-  const availability = getProductAvailability(product, variants);
+  const availability = selectedVariant
+    ? getVariantAvailability(selectedVariant)
+    : getProductAvailability(product, variants);
   const availableStock = availability.stock;
   const canPurchase = availability.isPurchasable;
 
   const openPurchaseOptions = (action: PurchaseOptionAction) => {
-    setSelectedVariant(null);
+    if (action === 'buy' && !isAuthenticated) {
+      pendingPurchase.current = action;
+      requireLogin();
+      return;
+    }
     setQuantity(1);
     setOptionAction(action);
   };
@@ -152,11 +178,15 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   const closePurchaseOptions = () => {
     if (purchaseAction) return;
     setOptionAction(null);
-    setSelectedVariant(null);
     setQuantity(1);
   };
 
   const handlePurchase = async (action: Exclude<PurchaseAction, null>) => {
+    if (action === 'buy' && !requireLogin()) {
+      pendingPurchase.current = action;
+      setOptionAction(null);
+      return;
+    }
     if (!canPurchase || purchaseAction) return;
     if (product.hasVariants && (!selectedVariant || selectedVariant.productId !== product.id)) {
       Alert.alert('Chọn phiên bản', 'Vui lòng chọn phiên bản sản phẩm trước khi mua.');
@@ -221,7 +251,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
             <Text style={styles.category}>{category.name}</Text>
             <Text style={styles.sku}>SKU: {selectedVariant?.sku ?? product.sku}</Text>
           </View>
-          <Text style={styles.productName}>{product.name}</Text>
+          <Text style={styles.productName}>{displayedName}</Text>
           <View style={styles.ratingRow}>
             <RatingStars
               count={product.reviewCount}
@@ -264,10 +294,23 @@ export function ProductDetailScreen({ navigation, route }: Props) {
           ) : null}
         </View>
 
+        {product.hasVariants && variants.length > 0 ? (
+          <View style={styles.section}>
+            <VariantSelector
+              variants={variants}
+              selectedId={selectedVariant?.id ?? null}
+              onSelect={(variant) => {
+                setSelectedVariant(variant);
+                setQuantity(1);
+              }}
+            />
+          </View>
+        ) : null}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Thông số kỹ thuật</Text>
           <View style={styles.specifications}>
-            <SpecificationList specifications={specifications} />
+            <SpecificationList specifications={selectedAttributes ?? specifications} />
           </View>
         </View>
 

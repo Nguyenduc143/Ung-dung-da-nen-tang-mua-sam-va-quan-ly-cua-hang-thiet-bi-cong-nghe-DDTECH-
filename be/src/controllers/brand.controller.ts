@@ -37,7 +37,16 @@ const uploadedLogoUrl = (req: Request, filename: string): string => {
   return `${req.protocol}://${host}/uploads/brands/${encodeURIComponent(filename)}`;
 };
 
-export const list = handlers.list('brands', true);
+export const list: RequestHandler = async (req, res) => {
+  const query = parse(z.object({
+    category: z.string().trim().min(1).max(191).optional(),
+    includeDescendants: z.enum(['true', 'false']).optional(),
+  }), req.query);
+  const data = query.category
+    ? await catalogService.listBrandsForCategory(query.category, query.includeDescendants === 'true')
+    : await catalogService.list('brands', true);
+  res.status(200).json({ success: true, message: 'Lấy thương hiệu thành công', data });
+};
 export const adminList = handlers.list('brands', false);
 export const detail = handlers.detail('brands');
 export const create = handlers.mutate('brands', 'create');

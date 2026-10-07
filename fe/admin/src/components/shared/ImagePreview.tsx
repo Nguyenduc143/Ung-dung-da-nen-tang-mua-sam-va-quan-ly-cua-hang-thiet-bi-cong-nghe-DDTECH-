@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { PictureOutlined } from '@ant-design/icons';
 import { Empty, Image, type ImageProps } from 'antd';
 
@@ -10,5 +11,5 @@ export function ImagePreview({ src, emptyText = 'Không có hình ảnh', ...pro
   if (!src) {
     return <Empty className="shared-image-empty" image={<PictureOutlined />} description={emptyText} />;
   }
-  return <Image src={src} {...props} />;
+  return <Image src={resolveMediaUrl(src)} {...props} />;
 }

@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { InfoCircleOutlined, ShoppingOutlined } from '@ant-design/icons';
 import {
   Alert,
@@ -175,7 +176,7 @@ export function VariantFormModal({
         )}
 
         <div className="variant-image-field">
-          <Avatar shape="square" size={72} src={imageUrl?.trim() || undefined} icon={<ShoppingOutlined />} />
+          <Avatar shape="square" size={72} src={resolveMediaUrl(imageUrl?.trim() || undefined)} icon={<ShoppingOutlined />} />
           <Form.Item name="imageUrl" label="URL ảnh phiên bản" rules={[{ type: 'url', message: 'URL ảnh không hợp lệ.' }, { max: 500 }]}>
             <Input placeholder="https://..." />
           </Form.Item>

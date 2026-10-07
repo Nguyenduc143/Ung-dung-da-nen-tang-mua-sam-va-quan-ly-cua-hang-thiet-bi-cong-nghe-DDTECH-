@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { brandLogoClassName } from '../../utils/brandLogo';
 import { InboxOutlined, TagsOutlined } from '@ant-design/icons';
 import {
   App as AntApp,
@@ -141,9 +143,10 @@ export function BrandFormModal({
           <Col xs={24} md={8}>
             <div className="image-form-preview category-image-preview">
               <Avatar
+                className={brandLogoClassName(localPreviewUrl || logoUrl?.trim())}
                 shape="square"
                 size={112}
-                src={localPreviewUrl || logoUrl?.trim() || undefined}
+                src={resolveMediaUrl(localPreviewUrl || logoUrl?.trim() || undefined)}
                 icon={<TagsOutlined />}
               />
               <Text type="secondary">Xem trước logo</Text>

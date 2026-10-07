@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import {
   ArrowLeftOutlined,
   LockOutlined,
@@ -129,7 +130,7 @@ export function UserDetailPage() {
       <div className="user-detail-grid">
         <Card className="form-section-card user-profile-card" bordered={false}>
           <div className="user-profile-header">
-            <Avatar size={92} src={user.avatarUrl || undefined} icon={!user.fullName ? <UserOutlined /> : undefined}>{user.fullName ? initials(user.fullName) : null}</Avatar>
+            <Avatar size={92} src={resolveMediaUrl(user.avatarUrl || undefined)} icon={!user.fullName ? <UserOutlined /> : undefined}>{user.fullName ? initials(user.fullName) : null}</Avatar>
             <div>
               <Title level={3}>{user.fullName}</Title>
               <Space wrap>

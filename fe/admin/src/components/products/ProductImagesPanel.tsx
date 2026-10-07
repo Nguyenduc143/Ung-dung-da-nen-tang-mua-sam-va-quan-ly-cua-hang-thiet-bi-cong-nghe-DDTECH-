@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react';
 import * as productApi from '../../api/productApi';
 import { getApiErrorMessage } from '../../api/axiosClient';
 import type { ProductImage, ProductVariant } from '../../types/product';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import {
   ProductImageFormModal,
   type ProductImageFormSubmission,
@@ -98,7 +99,7 @@ export function ProductImagesPanel({ productId, images, variants, onChanged }: P
               {images.map((image) => (
                 <div className={`product-image-card${image.isPrimary ? ' product-image-card--primary' : ''}`} key={image.id}>
                   <div className="product-image-preview">
-                    <Image src={image.imageUrl} alt={image.altText ?? 'Ảnh sản phẩm'} fallback="" />
+                    <Image src={resolveMediaUrl(image.imageUrl)} alt={image.altText ?? 'Ảnh sản phẩm'} fallback="" />
                     {image.isPrimary && <Tag className="primary-image-badge" icon={<StarFilled />} color="blue">Ảnh chính</Tag>}
                   </div>
                   <div className="product-image-meta">

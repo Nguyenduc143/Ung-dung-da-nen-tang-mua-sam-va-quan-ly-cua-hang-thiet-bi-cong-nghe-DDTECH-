@@ -7,8 +7,10 @@ const normalizeBrand = (brand: Brand): Brand => ({
   logoUrl: resolveMediaUrl(brand.logoUrl),
 });
 
-export const listBrands = async (): Promise<Brand[]> => {
-  const response = await apiClient.get<ApiResponse<Brand[]>>('/brands');
+export const listBrands = async (category?: number | string, includeDescendants = false): Promise<Brand[]> => {
+  const response = await apiClient.get<ApiResponse<Brand[]>>('/brands', {
+    params: { category, includeDescendants: category === undefined ? undefined : includeDescendants },
+  });
   return response.data.data.map(normalizeBrand);
 };
 

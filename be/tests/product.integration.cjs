@@ -26,6 +26,11 @@ const { signAccessToken } = require('../dist/utils/token');
       [prefix, `${prefix}-category`],
     );
     categories.push(categoryResult.insertId);
+    const [childCategoryResult] = await pool.execute(
+      'INSERT INTO categories (parent_id, name, slug) VALUES (?, ?, ?)',
+      [categories[0], `${prefix} child`, `${prefix}-child-category`],
+    );
+    categories.push(childCategoryResult.insertId);
     const [brandResult] = await pool.execute(
       'INSERT INTO brands (name, slug) VALUES (?, ?)',
       [prefix, `${prefix}-brand`],
@@ -154,7 +159,7 @@ const { signAccessToken } = require('../dist/utils/token');
     assert.equal(detail.images.find((image) => image.isPrimary).id, imageTwoData.image.id);
 
     const plainProductData = await request('POST', '/admin/products', {
-      categoryId: categories[0], name: `${prefix} plain`, sku: `${prefix}-plain`, price: 500, stock: 2,
+      categoryId: categories[1], name: `${prefix} plain`, sku: `${prefix}-plain`, price: 500, stock: 2,
     }, admin, 201);
     const plainProduct = plainProductData.product;
     products.push(plainProduct.id);
@@ -171,6 +176,20 @@ const { signAccessToken } = require('../dist/utils/token');
     );
     assert.ok(filtered.products.some((item) => item.id === product.id));
     assert.equal(filtered.pagination.page, 1);
+
+    const exactParent = await request(
+      'GET',
+      `/products?search=${encodeURIComponent(prefix)}&category=${categories[0]}&limit=10`,
+    );
+    assert.ok(exactParent.products.some((item) => item.id === product.id));
+    assert.ok(!exactParent.products.some((item) => item.id === plainProduct.id));
+
+    const parentWithDescendants = await request(
+      'GET',
+      `/products?search=${encodeURIComponent(prefix)}&category=${categories[0]}&includeDescendants=true&limit=10`,
+    );
+    assert.ok(parentWithDescendants.products.some((item) => item.id === product.id));
+    assert.ok(parentWithDescendants.products.some((item) => item.id === plainProduct.id));
 
     await request('DELETE', `/admin/product-images/${imageTwoData.image.id}`, undefined, admin);
     await request('DELETE', `/admin/product-images/${uploadedImageData.image.id}`, undefined, admin);

@@ -18,7 +18,9 @@ export const sendPasswordResetCode = async (
   recipient: { email: string; fullName: string },
   code: string,
 ): Promise<void> => {
-  if (!transporter) return;
+  if (!transporter) {
+    throw new Error('SMTP chưa được cấu hình');
+  }
 
   await transporter.sendMail({
     from: env.SMTP_FROM,
@@ -33,7 +35,9 @@ export const sendRegistrationVerificationCode = async (
   recipient: { email: string; fullName: string },
   code: string,
 ): Promise<void> => {
-  if (!transporter) return;
+  if (!transporter) {
+    throw new Error('SMTP chưa được cấu hình');
+  }
 
   await transporter.sendMail({
     from: env.SMTP_FROM,

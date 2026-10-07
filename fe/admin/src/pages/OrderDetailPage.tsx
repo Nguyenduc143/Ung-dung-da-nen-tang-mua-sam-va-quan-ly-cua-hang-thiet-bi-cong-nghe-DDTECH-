@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -90,10 +91,10 @@ export function OrderDetailPage() {
 
   const itemColumns: TableColumnsType<OrderItem> = [
     {
-      title: 'Sản phẩm', key: 'product',
+      title: 'Sản phẩm', key: 'product', width: 360,
       render: (_, item) => (
         <div className="order-item-product">
-          <Avatar shape="square" size={52} src={item.productImage || undefined} icon={<ShoppingOutlined />} />
+          <Avatar shape="square" size={52} src={resolveMediaUrl(item.productImage || undefined)} icon={<ShoppingOutlined />} />
           <div className="table-primary-cell">
             <strong>{item.productName}</strong>
             <span>{item.variantName ? `${item.variantName} · ${item.productSku}` : item.productSku}</span>
@@ -157,7 +158,7 @@ export function OrderDetailPage() {
               columns={itemColumns}
               dataSource={items}
               pagination={false}
-              scroll={{ x: 680 }}
+              scroll={{ x: 750 }}
               locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Đơn hàng chưa có sản phẩm" /> }}
             />
           </Card>

@@ -18,6 +18,10 @@ export async function detail(kind: CatalogKind, slug: string) {
   if (!row) throw new AppError(404, 'Không tìm thấy bản ghi');
   return kind === 'categories' ? { ...row, attributes: await repo.list('category_attributes', false, row.id) } : row;
 }
+
+export const listBrandsForCategory = (category: string, includeDescendants: boolean) => (
+  repo.listBrandsForCategory(category, includeDescendants)
+);
 export async function findById(kind: CatalogKind, id: number) {
   const row = await repo.find(kind, id);
   if (!row) throw new AppError(404, 'Không tìm thấy bản ghi');

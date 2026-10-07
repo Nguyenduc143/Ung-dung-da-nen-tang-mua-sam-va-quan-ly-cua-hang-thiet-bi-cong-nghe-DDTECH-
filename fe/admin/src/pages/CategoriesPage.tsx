@@ -30,6 +30,7 @@ import { useCallback, useMemo, useState, useEffect } from 'react';
 import * as categoryApi from '../api/categoryApi';
 import { getApiErrorMessage } from '../api/axiosClient';
 import { CategoryAttributesDrawer } from '../components/categories/CategoryAttributesDrawer';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import {
   CategoryFormModal,
   type CategoryFormSubmission,
@@ -148,7 +149,7 @@ export function CategoriesPage() {
           <Avatar
             shape="square"
             size={42}
-            src={record.imageUrl || undefined}
+            src={resolveMediaUrl(record.imageUrl || undefined)}
             icon={<AppstoreOutlined />}
           />
           <div className="table-primary-cell">

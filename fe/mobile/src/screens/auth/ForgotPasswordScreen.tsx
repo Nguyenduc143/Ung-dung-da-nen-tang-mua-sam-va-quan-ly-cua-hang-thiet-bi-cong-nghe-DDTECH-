@@ -33,10 +33,9 @@ export function ForgotPasswordScreen({ navigation }: Props) {
     setRequestError(undefined);
     setIsSubmitting(true);
     try {
-      const data = await forgotPassword({ email: normalizedEmail });
+      await forgotPassword({ email: normalizedEmail });
       navigation.navigate('ResetPassword', {
         email: normalizedEmail,
-        developmentCode: data.developmentCode,
       });
     } catch (error) {
       setRequestError(getApiErrorMessage(error));

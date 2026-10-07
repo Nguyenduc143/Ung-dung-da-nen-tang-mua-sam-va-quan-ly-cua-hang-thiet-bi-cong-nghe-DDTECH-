@@ -27,6 +27,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import * as brandApi from '../api/brandApi';
 import { getApiErrorMessage } from '../api/axiosClient';
+import { resolveMediaUrl } from '../utils/mediaUrl';
+import { brandLogoClassName } from '../utils/brandLogo';
 import {
   BrandFormModal,
   type BrandFormSubmission,
@@ -135,10 +137,11 @@ export function BrandsPage() {
       render: (value: string, record) => (
         <div className="category-name-cell">
           <Avatar
-            className="brand-logo-cell"
+            className={brandLogoClassName(record.logoUrl)}
             shape="square"
             size={46}
-            src={record.logoUrl || undefined}
+            style={{ width: 80, flexShrink: 0 }}
+            src={resolveMediaUrl(record.logoUrl || undefined)}
             icon={<TagsOutlined />}
           />
           <div className="table-primary-cell">

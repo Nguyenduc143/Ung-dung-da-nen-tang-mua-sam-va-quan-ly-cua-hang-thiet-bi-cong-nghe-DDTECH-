@@ -4,6 +4,8 @@ import * as cartApi from '@/api/cart.api';
 import { getApiErrorMessage } from '@/api/axiosClient';
 import type { AddCartItemInput, CartData } from '@/types';
 import { useBadgeStore } from './badgeStore';
+import { getAuthenticatedUserId } from './authIdentity';
+import { addGuestItem, clearGuestCart, loadGuestCart, mergeGuestCart, removeGuestItem, updateGuestItem } from './guestCart';
 
 interface CartState {
   cart: CartData | null;
@@ -27,10 +29,14 @@ interface CartState {
 }
 
 let loadRequest: Promise<CartData> | null = null;
+let loadRequestUserId: number | null = null;
 let loadGeneration = 0;
+
+const currentUserId = getAuthenticatedUserId;
 
 const applyCart = (cart: CartData, expectedGeneration = loadGeneration): void => {
   if (expectedGeneration !== loadGeneration) return;
+  if (cart.cart.userId !== currentUserId()) return;
   const state = useCartStore.getState();
   const previousItemIds = new Set(state.cart?.items.map((item) => item.id) ?? []);
   const currentItemIds = new Set(cart.items.map((item) => item.id));
@@ -52,6 +58,14 @@ const applyCart = (cart: CartData, expectedGeneration = loadGeneration): void =>
 };
 
 const loadLatestCart = async (expectedGeneration: number): Promise<CartData> => {
+  if (!currentUserId()) {
+    const cart = await loadGuestCart();
+    applyCart(cart, expectedGeneration);
+    return cart;
+  }
+  const userId = currentUserId();
+  await mergeGuestCart(() => currentUserId() === userId);
+  if (currentUserId() !== userId) throw new Error('Phiên đăng nhập đã thay đổi.');
   const cart = await cartApi.getCart();
   applyCart(cart, expectedGeneration);
   return cart;
@@ -69,14 +83,15 @@ export const useCartStore = create<CartState>((set, get) => ({
   updatingItemIds: new Set<number>(),
 
   loadCart: async (force = false) => {
-    if (!force && get().isInitialized && get().cart) return get().cart!;
-    if (loadRequest) return loadRequest;
+    const userId = currentUserId();
+    if (!force && get().isInitialized && get().cart?.cart.userId === userId) return get().cart!;
+    if (loadRequest && loadRequestUserId === userId) return loadRequest;
 
     set(force
       ? { isRefreshing: true, error: null }
       : { isLoading: true, error: null });
     const requestGeneration = loadGeneration;
-    const request = cartApi.getCart()
+    const request = loadLatestCart(requestGeneration)
       .then((cart) => {
         applyCart(cart, requestGeneration);
         return cart;
@@ -98,6 +113,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       });
 
     loadRequest = request;
+    loadRequestUserId = userId;
     return request;
   },
 
@@ -106,7 +122,10 @@ export const useCartStore = create<CartState>((set, get) => ({
   addItem: async (input) => {
     const mutationGeneration = loadGeneration;
     try {
-      const cart = await cartApi.addCartItem(input);
+      if (currentUserId()) await get().loadCart();
+      const cart = currentUserId()
+        ? await cartApi.addCartItem(input)
+        : await addGuestItem(input);
       applyCart(cart, mutationGeneration);
       return cart;
     } catch (error) {
@@ -128,7 +147,9 @@ export const useCartStore = create<CartState>((set, get) => ({
     }));
 
     try {
-      const cart = await cartApi.updateCartItem(itemId, { quantity });
+      const cart = currentUserId()
+        ? await cartApi.updateCartItem(itemId, { quantity })
+        : await updateGuestItem(itemId, quantity);
       applyCart(cart, mutationGeneration);
       return cart;
     } catch (error) {
@@ -156,6 +177,11 @@ export const useCartStore = create<CartState>((set, get) => ({
     }));
 
     try {
+      if (!currentUserId()) {
+        const cart = await removeGuestItem(itemId);
+        applyCart(cart, mutationGeneration);
+        return cart;
+      }
       await cartApi.removeCartItem(itemId);
       return await loadLatestCart(mutationGeneration);
     } catch (error) {
@@ -178,6 +204,11 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ isClearing: true, error: null });
 
     try {
+      if (!currentUserId()) {
+        const cart = await clearGuestCart();
+        applyCart(cart, mutationGeneration);
+        return cart;
+      }
       await cartApi.clearCart();
       return await loadLatestCart(mutationGeneration);
     } catch (error) {

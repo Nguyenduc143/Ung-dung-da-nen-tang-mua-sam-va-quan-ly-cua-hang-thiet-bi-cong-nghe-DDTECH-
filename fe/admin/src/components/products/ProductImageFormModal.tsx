@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { InboxOutlined, PictureOutlined } from '@ant-design/icons';
 import {
   App as AntApp,
@@ -93,7 +94,7 @@ export function ProductImageFormModal({
       confirmLoading={submitting} onCancel={onCancel} onOk={() => form.submit()} destroyOnHidden>
       <Form<ProductImageFormValues> form={form} layout="vertical" requiredMark={false} onFinish={handleFinish}>
         <div className="image-form-preview">
-          <Avatar shape="square" size={112} src={localPreviewUrl || imageUrl?.trim() || undefined} icon={<PictureOutlined />} />
+          <Avatar shape="square" size={112} src={resolveMediaUrl(localPreviewUrl || imageUrl?.trim() || undefined)} icon={<PictureOutlined />} />
           <Text type="secondary">Xem trước hình ảnh</Text>
         </div>
 

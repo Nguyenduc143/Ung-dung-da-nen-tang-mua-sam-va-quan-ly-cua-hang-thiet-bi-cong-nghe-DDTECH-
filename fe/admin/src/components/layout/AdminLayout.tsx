@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import {
   HomeOutlined,
   LogoutOutlined,
@@ -95,7 +96,7 @@ export function AdminLayout() {
 
         <div className="sider-footer">
           <div className="sider-user">
-            <Avatar src={user?.avatarUrl} icon={<UserOutlined />} />
+            <Avatar src={resolveMediaUrl(user?.avatarUrl)} icon={<UserOutlined />} />
             {!collapsed && (
               <div>
                 <Text>{user?.fullName}</Text>
@@ -126,7 +127,7 @@ export function AdminLayout() {
             <NotificationHeaderDropdown />
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
               <Button className="user-menu-button" type="text">
-                <Avatar size={32} src={user?.avatarUrl} icon={<UserOutlined />} />
+                <Avatar size={32} src={resolveMediaUrl(user?.avatarUrl)} icon={<UserOutlined />} />
                 <span className="header-user-name">{user?.fullName}</span>
               </Button>
             </Dropdown>

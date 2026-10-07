@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { InboxOutlined, PictureOutlined } from '@ant-design/icons';
 import {
   App as AntApp,
@@ -204,7 +205,7 @@ export function CategoryFormModal({
               <Avatar
                 shape="square"
                 size={112}
-                src={localPreviewUrl || imageUrl?.trim() || undefined}
+                src={resolveMediaUrl(localPreviewUrl || imageUrl?.trim() || undefined)}
                 icon={<PictureOutlined />}
               />
               <Text type="secondary">Xem trước hình ảnh</Text>

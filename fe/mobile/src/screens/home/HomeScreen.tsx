@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryCard, ErrorState, SearchBar } from '@/components';
 import { getApiErrorMessage } from '@/api/axiosClient';
+import { requireLogin } from '@/navigation/authNavigation';
 import { useHomeData } from '@/hooks';
 import type { CustomerStackParamList, MainTabParamList } from '@/navigation/types';
 import { useAuthStore, useBadgeStore, useFavoriteStore } from '@/stores';
@@ -98,6 +99,7 @@ export function HomeScreen({ navigation }: Props) {
   };
 
   const handleToggleFavorite = async (productId: number) => {
+    if (!requireLogin()) return;
     try {
       await toggleFavorite(productId);
     } catch (favoriteError) {
@@ -192,6 +194,7 @@ export function HomeScreen({ navigation }: Props) {
                       name={item.name}
                       onPress={() => rootNavigation?.navigate('ProductList', {
                         category: item.slug,
+                        categoryRoot: item.slug,
                         title: item.name,
                       })}
                     />

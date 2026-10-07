@@ -14,6 +14,7 @@ import { useBadgeStore } from './badgeStore';
 import { useFavoriteStore } from './favoriteStore';
 import { useCartStore } from './cartStore';
 import { useAddressStore } from './addressStore';
+import { setAuthenticatedUserId } from './authIdentity';
 
 export interface AuthState {
   user: AuthUser | null;
@@ -240,6 +241,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user, isAuthenticated: Boolean(user) }),
   clearError: () => set({ error: null }),
 }));
+
+// Subscribe to every state change, including restore, setUser and expired sessions.
+// This keeps cart ownership synchronized without cartStore importing this module.
+useAuthStore.subscribe((state) => {
+  setAuthenticatedUserId(state.isAuthenticated ? state.user?.id ?? 0 : 0);
+});
 
 subscribeToAuthTokensChanged((tokens) => {
   useAuthStore.setState(toTokenState(tokens));

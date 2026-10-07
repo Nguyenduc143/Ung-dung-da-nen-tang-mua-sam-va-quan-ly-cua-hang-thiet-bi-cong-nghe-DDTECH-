@@ -15,9 +15,12 @@ import {
 import { useBadgeStore } from '@/stores';
 import { colors, fontWeights, shadows, spacing } from '@/theme';
 import { HeaderNotificationButton } from './HeaderNotificationButton';
+import { withAuthRequired } from './withAuthRequired';
 import type { CustomerStackParamList, MainTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+const ProtectedOrders = withAuthRequired(OrdersScreen);
+const ProtectedProfile = withAuthRequired(ProfileScreen);
 
 const tabIcons: Record<keyof MainTabParamList, { active: IoniconName; inactive: IoniconName }> = {
   HomeTab: { active: 'home', inactive: 'home-outline' },
@@ -87,8 +90,8 @@ export function MainTabNavigator() {
         name="CartTab"
         options={{ tabBarBadge: formatBadgeCount(cartItemCount), title: 'Giỏ hàng' }}
       />
-      <Tab.Screen component={OrdersScreen} name="OrdersTab" options={{ title: 'Đơn hàng' }} />
-      <Tab.Screen component={ProfileScreen} name="AccountTab" options={{ title: 'Tài khoản' }} />
+      <Tab.Screen component={ProtectedOrders} name="OrdersTab" options={{ title: 'Đơn hàng' }} />
+      <Tab.Screen component={ProtectedProfile} name="AccountTab" options={{ title: 'Tài khoản' }} />
     </Tab.Navigator>
   );
 }

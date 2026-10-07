@@ -1,7 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   ActivityIndicator,
@@ -16,7 +16,8 @@ import {
 import { getApiErrorMessage } from '@/api/axiosClient';
 import { EmptyState, ErrorState } from '@/components';
 import type { CustomerStackParamList, MainTabParamList } from '@/navigation/types';
-import { useCartStore } from '@/stores';
+import { requireLogin } from '@/navigation/authNavigation';
+import { useAuthStore, useCartStore } from '@/stores';
 import { colors, radius, spacing, typography } from '@/theme';
 import type { CartItem } from '@/types';
 import { CartItemCard } from './components/CartItemCard';
@@ -26,6 +27,10 @@ import { CartSummaryBar } from './components/CartSummaryBar';
 type Props = BottomTabScreenProps<MainTabParamList, 'CartTab'>;
 
 export function CartScreen({ navigation }: Props) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const userId = useAuthStore((state) => state.user?.id ?? 0);
+  const isFocused = useIsFocused();
+  const pendingCheckout = useRef<Array<{ productId: number; variantId: number | null }> | null>(null);
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<CustomerStackParamList>>();
   const cart = useCartStore((state) => state.cart);
   const error = useCartStore((state) => state.error);
@@ -44,7 +49,29 @@ export function CartScreen({ navigation }: Props) {
 
   useFocusEffect(useCallback(() => {
     void loadCart(true).catch(() => undefined);
-  }, [loadCart]));
+  }, [isAuthenticated, loadCart]));
+
+  useEffect(() => {
+    if (!isFocused || !pendingCheckout.current) return;
+    const requestedItems = pendingCheckout.current;
+    pendingCheckout.current = null;
+    if (!isAuthenticated) return;
+    let active = true;
+    void loadCart(true).then((latestCart) => {
+      if (!active) return;
+      const cartItemIds = requestedItems.map((requested) => latestCart.items.find((item) => (
+        item.product.id === requested.productId
+        && (item.variant?.id ?? null) === requested.variantId
+      ))?.id);
+      if (cartItemIds.some((id) => id == null)) {
+        throw new Error('Một số sản phẩm chưa chuyển được vào giỏ tài khoản. Vui lòng kiểm tra lại giỏ.');
+      }
+      rootNavigation?.navigate('Checkout', { cartItemIds: cartItemIds as number[] });
+    }).catch((checkoutError) => {
+      if (active) Alert.alert('Chưa thể thanh toán', getApiErrorMessage(checkoutError));
+    });
+    return () => { active = false; };
+  }, [isAuthenticated, isFocused, loadCart, rootNavigation]);
 
   const handleQuantityChange = async (item: CartItem, quantity: number) => {
     const validQuantity = item.quantity > item.availableStock && quantity < item.quantity
@@ -120,9 +147,10 @@ export function CartScreen({ navigation }: Props) {
     );
   };
 
-  if ((isLoading || isRefreshing) && !cart) return <CartSkeleton />;
+  const isChangingCartOwner = Boolean(cart && cart.cart.userId !== (isAuthenticated ? userId : 0));
+  if (((isLoading || isRefreshing) && !cart) || (isChangingCartOwner && !error)) return <CartSkeleton />;
 
-  if (error && !cart) {
+  if (error && (!cart || isChangingCartOwner)) {
     return (
       <ErrorState
         description={error}
@@ -231,9 +259,18 @@ export function CartScreen({ navigation }: Props) {
         <CartSummaryBar
           disabled={selectedItems.length === 0 || hasInvalidItems || hasPendingUpdate}
           itemCount={selectedQuantity}
-          onCheckout={() => rootNavigation?.navigate('Checkout', {
-            cartItemIds: selectedItems.map((item) => item.id),
-          })}
+          onCheckout={() => {
+            if (!isAuthenticated) {
+              pendingCheckout.current = selectedItems.map((item) => ({
+                productId: item.product.id, variantId: item.variant?.id ?? null,
+              }));
+              requireLogin();
+              return;
+            }
+            rootNavigation?.navigate('Checkout', {
+              cartItemIds: selectedItems.map((item) => item.id),
+            });
+          }}
           subtotal={selectedSubtotal}
         />
       ) : null}

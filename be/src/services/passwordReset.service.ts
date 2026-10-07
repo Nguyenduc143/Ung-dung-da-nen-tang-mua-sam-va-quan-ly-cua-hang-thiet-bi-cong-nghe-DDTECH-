@@ -25,7 +25,7 @@ const hashesMatch = (left: string, right: string): boolean => {
 export const requestPasswordReset = async (input: ForgotPasswordInput) => {
   const user = await passwordResetRepository.findUserByEmail(input.email);
   if (!user || user.status !== 'ACTIVE' || user.deleted_at !== null) {
-    return { developmentCode: undefined };
+    return {};
   }
 
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
@@ -40,11 +40,13 @@ export const requestPasswordReset = async (input: ForgotPasswordInput) => {
     await sendPasswordResetCode({ email: user.email, fullName: user.full_name }, code);
   } catch (error) {
     console.error('Không thể gửi email đặt lại mật khẩu:', error);
+    if (env.NODE_ENV !== 'test') {
+      throw new AppError(503, 'Chưa thể gửi email đặt lại mật khẩu. Vui lòng thử lại sau');
+    }
   }
 
-  return {
-    developmentCode: env.NODE_ENV !== 'production' ? code : undefined,
-  };
+  // Chỉ cung cấp mã cho kiểm thử tích hợp, không trả mã cho ứng dụng.
+  return env.NODE_ENV === 'test' ? { developmentCode: code } : {};
 };
 
 export const resetPassword = async (input: ResetPasswordInput): Promise<void> => {

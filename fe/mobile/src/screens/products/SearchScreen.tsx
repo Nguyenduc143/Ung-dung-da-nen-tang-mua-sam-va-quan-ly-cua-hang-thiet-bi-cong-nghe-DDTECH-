@@ -14,6 +14,7 @@ import {
 
 import { EmptyState, ErrorState, ProductCard, ProductGridSkeleton, SearchBar } from '@/components';
 import { getApiErrorMessage } from '@/api/axiosClient';
+import { requireLogin } from '@/navigation/authNavigation';
 import { useCatalogData, useDebouncedValue, useProductList } from '@/hooks';
 import type { CustomerStackParamList } from '@/navigation/types';
 import { useFavoriteStore } from '@/stores';
@@ -150,6 +151,7 @@ export function SearchScreen({ navigation, route }: Props) {
   const isDebouncing = searchValue.trim() !== debouncedSearch;
 
   const handleToggleFavorite = async (productId: number) => {
+    if (!requireLogin()) return;
     try {
       await toggleFavorite(productId);
     } catch (favoriteError) {
