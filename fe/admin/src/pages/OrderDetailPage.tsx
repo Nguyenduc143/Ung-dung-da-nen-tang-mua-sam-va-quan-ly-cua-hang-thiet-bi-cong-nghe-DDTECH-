@@ -5,6 +5,7 @@ import {
   ClockCircleOutlined,
   EditOutlined,
   FileTextOutlined,
+  FilePdfOutlined,
   ShoppingOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -31,6 +32,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { getApiErrorMessage } from '../api/axiosClient';
 import * as orderApi from '../api/orderApi';
+import { exportInvoice } from '../utils/documentExport';
 import { OrderStatusModal } from '../components/orders/OrderStatusModal';
 import type { OrderDetailData, OrderItem, UpdateOrderStatusInput } from '../types/order';
 import {
@@ -55,6 +57,17 @@ export function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleInvoice = async () => {
+    setExporting(true);
+    try {
+      await exportInvoice(await orderApi.getOrder(orderId));
+      message.success('Đã xuất hóa đơn PDF.');
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'Không thể xuất hóa đơn PDF.'));
+    } finally { setExporting(false); }
+  };
 
   const loadOrder = useCallback(async () => {
     if (!Number.isInteger(orderId) || orderId <= 0) {
@@ -141,6 +154,7 @@ export function OrderDetailPage() {
         </div>
         <Space wrap>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/orders')}>Danh sách đơn</Button>
+          <Button icon={<FilePdfOutlined />} loading={exporting} onClick={() => void handleInvoice()}>Xuất hóa đơn PDF</Button>
           {canUpdateStatus && <Button type="primary" icon={<EditOutlined />} onClick={() => setStatusModalOpen(true)}>Cập nhật trạng thái</Button>}
         </Space>
       </div>

@@ -19,6 +19,7 @@ import { notificationRouter } from './notification.routes';
 import { inventoryRouter } from './inventory.routes';
 import { dashboardRouter } from './dashboard.routes';
 import { reportRouter } from './report.routes';
+import { chatRouter, adminChatRouter } from './chat.routes';
 
 interface HealthData {
   status: 'ok';
@@ -47,6 +48,8 @@ apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/admin/inventory', inventoryRouter);
 apiRouter.use('/admin/dashboard', dashboardRouter);
 apiRouter.use('/admin/reports', reportRouter);
+apiRouter.use('/chat', chatRouter);
+apiRouter.use('/admin/chat', adminChatRouter);
 
 apiRouter.get('/health', (_req, res) => {
   const response: ApiResponse<HealthData> = {

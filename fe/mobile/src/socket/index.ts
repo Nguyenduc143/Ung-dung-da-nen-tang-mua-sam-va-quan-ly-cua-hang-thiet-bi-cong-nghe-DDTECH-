@@ -4,6 +4,7 @@ import { clearAuthSession } from '@/api/authSession';
 import { SOCKET_BASE_URL } from '@/constants';
 import { useBadgeStore } from '@/stores/badgeStore';
 import type { NotificationType, OrderStatus, PaymentStatus } from '@/types';
+import type { ChatRealtimeEvent } from '@/types/chat';
 
 export interface OrderRealtimeEvent {
   orderId: number;
@@ -46,6 +47,10 @@ export interface AuthSessionRevokedEvent {
 }
 
 export interface RealtimeEventMap {
+  'chat:message-created': ChatRealtimeEvent;
+  'chat:read': ChatRealtimeEvent;
+  'chat:conversation-updated': ChatRealtimeEvent;
+  'chat:conversation-closed': ChatRealtimeEvent;
   'order:updated': OrderRealtimeEvent;
   'payment:updated': PaymentRealtimeEvent;
   'payment:created': PaymentRealtimeEvent;
@@ -80,6 +85,9 @@ const publish = <Event extends RealtimeEventName>(
 };
 
 const attachServerListeners = (client: Socket): void => {
+  for (const event of ['chat:message-created', 'chat:read', 'chat:conversation-updated', 'chat:conversation-closed'] as const) {
+    client.on(event, (payload: ChatRealtimeEvent) => publish(event, payload));
+  }
   client.on('order:updated', (payload: OrderRealtimeEvent) => {
     publish('order:updated', payload);
   });

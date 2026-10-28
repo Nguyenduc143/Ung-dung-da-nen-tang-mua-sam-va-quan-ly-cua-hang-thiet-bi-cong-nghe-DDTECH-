@@ -9,6 +9,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "db:procedures": "node scripts/install-procedures.cjs",
+    "db:chat": "node scripts/install-procedures.cjs --only=009_customer_support_chat.sql",
+    "test:chat:db": "node tests/chat-database.integration.cjs",
+    "test:chat": "npm run build && node tests/chat.integration.cjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node tests/run-all.cjs",
     "test:integration": "node tests/run-all.cjs"

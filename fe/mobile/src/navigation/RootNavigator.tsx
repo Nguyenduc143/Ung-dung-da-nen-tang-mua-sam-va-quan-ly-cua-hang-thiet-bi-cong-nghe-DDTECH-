@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { DefaultTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -9,6 +10,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { MainStackNavigator } from './MainStackNavigator';
 import { rootNavigationRef } from './authNavigation';
 import type { RootStackParamList } from './types';
+import { FloatingChatButton } from './FloatingChatButton';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -26,6 +28,8 @@ const navigationTheme: Theme = {
 };
 
 export function RootNavigator() {
+  const [routeName, setRouteName] = useState('HomeTab');
+  const updateRoute = () => setRouteName(rootNavigationRef.getCurrentRoute()?.name ?? 'HomeTab');
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isInitialized = useAuthStore((state) => state.isInitialized);
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -37,7 +41,8 @@ export function RootNavigator() {
   if (!isInitialized) return <AuthLoadingScreen />;
 
   return (
-    <NavigationContainer ref={rootNavigationRef} theme={navigationTheme}>
+    <NavigationContainer ref={rootNavigationRef} theme={navigationTheme} onReady={updateRoute} onStateChange={updateRoute}>
+      <View style={{ flex: 1 }}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen component={MainStackNavigator} name="Customer" />
         {!isAuthenticated ? (
@@ -48,6 +53,8 @@ export function RootNavigator() {
           />
         ) : null}
       </Stack.Navigator>
+      <FloatingChatButton routeName={routeName} />
+      </View>
     </NavigationContainer>
   );
 }

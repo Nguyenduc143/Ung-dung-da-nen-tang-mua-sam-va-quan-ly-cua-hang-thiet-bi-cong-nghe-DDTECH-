@@ -1,6 +1,8 @@
 import {
   EditOutlined,
   ExportOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined,
   HistoryOutlined,
   InboxOutlined,
   ReloadOutlined,
@@ -29,6 +31,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getApiErrorMessage } from '../api/axiosClient';
 import * as inventoryApi from '../api/inventoryApi';
+import { collectExportPages, exportInventoryTable, inventoryExportTable, lowStockExportTable, transactionExportTable } from '../utils/documentExport';
 import { StockChangeModal, type StockTarget } from '../components/inventory/StockChangeModal';
 import type {
   InventoryChangeInput,
@@ -97,6 +100,7 @@ export function InventoryPage() {
   const [modalMode, setModalMode] = useState<'import' | 'adjust'>('import');
   const [stockTarget, setStockTarget] = useState<StockTarget | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState<'pdf' | 'xlsx' | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -120,6 +124,31 @@ export function InventoryPage() {
     dateFrom: transactionDates?.[0]?.startOf('day').toISOString(),
     dateTo: transactionDates?.[1]?.endOf('day').toISOString(),
   }), [transactionDates, transactionPage, transactionPageSize, transactionType]);
+
+  const handleExport = async (format: 'pdf' | 'xlsx') => {
+    setExporting(format);
+    try {
+      const data = activeTab === 'low-stock'
+        ? lowStockExportTable((await inventoryApi.listLowStock(threshold)).items, threshold)
+        : activeTab === 'history'
+          ? transactionExportTable(await collectExportPages(async page => {
+            const result = await inventoryApi.listTransactions({ ...transactionQuery, page, limit: 100 });
+            return { rows: result.transactions, totalPages: result.pagination.totalPages };
+          }), `Loại: ${transactionType ? transactionLabels[transactionType] : 'Tất cả'}; Từ: ${transactionDates?.[0]?.format('DD/MM/YYYY') ?? 'Không giới hạn'}; Đến: ${transactionDates?.[1]?.format('DD/MM/YYYY') ?? 'Không giới hạn'}`)
+          : inventoryExportTable(await collectExportPages(async page => {
+            const result = await inventoryApi.listInventory({ ...inventoryQuery, search: search.trim() || undefined, page, limit: 100 });
+            return { rows: result.products, totalPages: result.pagination.totalPages };
+          }), `Tìm kiếm: ${search.trim() || 'Tất cả'}; Trạng thái: ${status === 'ACTIVE' ? 'Đang bán' : status === 'INACTIVE' ? 'Ngừng bán' : 'Tất cả'}`);
+      if (!data.rows.length) {
+        message.info('Không có dữ liệu phù hợp để xuất.');
+        return;
+      }
+      await exportInventoryTable(data, format);
+      message.success(`Đã xuất ${data.rows.length} dòng dữ liệu.`);
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'Không thể xuất dữ liệu tồn kho.'));
+    } finally { setExporting(null); }
+  };
 
   const loadInventory = useCallback(async () => {
     setInventoryLoading(true);
@@ -401,6 +430,11 @@ export function InventoryPage() {
         <Paragraph>Theo dõi số lượng, nhập hàng và kiểm tra toàn bộ lịch sử thay đổi kho.</Paragraph>
       </div>
       <Card className="management-card inventory-card" bordered={false}>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Button icon={<FileExcelOutlined />} loading={exporting === 'xlsx'} disabled={exporting !== null} onClick={() => void handleExport('xlsx')}>Xuất Excel</Button>
+          <Button icon={<FilePdfOutlined />} loading={exporting === 'pdf'} disabled={exporting !== null} onClick={() => void handleExport('pdf')}>Xuất PDF</Button>
+          <Text type="secondary">Xuất toàn bộ dữ liệu theo bộ lọc của tab đang chọn.</Text>
+        </Space>
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
           { key: 'inventory', label: <span><InboxOutlined /> Tồn kho</span>, children: inventoryContent },
           { key: 'low-stock', label: <span><WarningOutlined /> Sắp hết <Tag color="warning">{lowStockItems.length}</Tag></span>, children: lowStockContent },

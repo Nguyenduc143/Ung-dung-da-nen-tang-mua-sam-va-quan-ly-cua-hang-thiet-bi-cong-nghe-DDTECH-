@@ -13,6 +13,8 @@ export default defineConfig({
             {
               name: (moduleId) => {
                 const normalizedId = moduleId.replaceAll('\\', '/');
+                if (/node_modules\/pdfmake\//.test(normalizedId)) return 'vendor-pdf';
+                if (/node_modules\/(?:exceljs|jszip)\//.test(normalizedId)) return 'vendor-excel';
                 if (/node_modules\/(?:react|react-dom|react-router|react-router-dom|scheduler)\//.test(normalizedId)) {
                   return 'vendor-react';
                 }

@@ -4,6 +4,7 @@ import {
   BellOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  CustomerServiceOutlined,
   PercentageOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
@@ -32,6 +33,8 @@ export const adminNavigation: AdminNavigationItem[] = [
   { path: '/reviews', label: 'Đánh giá', icon: <StarOutlined /> },
   { path: '/notifications', label: 'Thông báo', icon: <BellOutlined /> },
   { path: '/reports', label: 'Báo cáo thống kê', icon: <BarChartOutlined /> },
+  { path: '/support-chat', label: 'Chăm sóc khách hàng', icon: <CustomerServiceOutlined /> },
+
 ];
 
 export const adminMenuItems: MenuProps['items'] = adminNavigation.map((item) => ({

@@ -32,6 +32,7 @@ export type MainTabParamList = {
 };
 
 export type CustomerStackParamList = {
+  SupportChat: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   ProductList: ProductListParams | undefined;
   ProductDetail: { productId: number };

@@ -17,9 +17,18 @@ async function main() {
 
   try {
     const migrationDirectory = path.join(root, 'database');
-    const migrations = fs.readdirSync(migrationDirectory)
+    let migrations = fs.readdirSync(migrationDirectory)
       .filter((name) => name.endsWith('.sql'))
       .sort();
+    const args = process.argv.slice(2);
+    if (args.length) {
+      if (args.length !== 1 || !args[0].startsWith('--only=')) {
+        throw new Error('Usage: node scripts/install-procedures.cjs [--only=filename.sql]');
+      }
+      const selected = args[0].slice('--only='.length);
+      if (!migrations.includes(selected)) throw new Error('Unknown migration filename');
+      migrations = [selected];
+    }
     let statementCount = 0;
 
     for (const migration of migrations) {

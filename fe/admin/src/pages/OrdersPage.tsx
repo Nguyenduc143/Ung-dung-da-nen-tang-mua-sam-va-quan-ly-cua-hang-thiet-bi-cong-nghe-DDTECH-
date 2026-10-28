@@ -1,11 +1,13 @@
 import {
   EyeOutlined,
+  FilePdfOutlined,
   ReloadOutlined,
   SearchOutlined,
   ShoppingCartOutlined,
 } from '@ant-design/icons';
 import {
   Alert,
+  App as AntApp,
   Button,
   Card,
   Input,
@@ -23,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { getApiErrorMessage } from '../api/axiosClient';
 import * as orderApi from '../api/orderApi';
+import { exportInvoice } from '../utils/documentExport';
 import type {
   Order,
   OrderQuery,
@@ -42,6 +45,8 @@ import {
 const { Paragraph, Text, Title } = Typography;
 
 export function OrdersPage() {
+  const { message } = AntApp.useApp();
+  const [exportingId, setExportingId] = useState<number | null>(null);
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +102,16 @@ export function OrdersPage() {
     setPage(1);
   };
 
+  const handleInvoice = async (id: number) => {
+    setExportingId(id);
+    try {
+      await exportInvoice(await orderApi.getOrder(id));
+      message.success('Đã xuất hóa đơn PDF.');
+    } catch (error) {
+      message.error(getApiErrorMessage(error, 'Không thể xuất hóa đơn PDF.'));
+    } finally { setExportingId(null); }
+  };
+
   const columns: TableColumnsType<Order> = [
     {
       title: 'Mã đơn', dataIndex: 'orderCode', key: 'orderCode', width: 145,
@@ -141,9 +156,12 @@ export function OrdersPage() {
       render: (value: string) => dayjs(value).format('DD/MM/YYYY HH:mm'),
     },
     {
-      title: '', key: 'actions', width: 58, fixed: 'right',
+      title: 'Thao tác', key: 'actions', width: 175, fixed: 'right',
       render: (_, record) => (
-        <Tooltip title="Xem chi tiết"><Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/orders/${record.id}`)} /></Tooltip>
+        <Space>
+          <Tooltip title="Xem chi tiết"><Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/orders/${record.id}`)} /></Tooltip>
+          <Button size="small" icon={<FilePdfOutlined />} loading={exportingId === record.id} disabled={exportingId !== null && exportingId !== record.id} onClick={() => void handleInvoice(record.id)}>Hóa đơn</Button>
+        </Space>
       ),
     },
   ];

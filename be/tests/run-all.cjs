@@ -15,6 +15,7 @@ const tests = [
   'dashboard.integration.cjs',
   'reports.integration.cjs',
   'security-validation.integration.cjs',
+  'chat.integration.cjs',
 ];
 
 for (const test of tests) {

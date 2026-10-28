@@ -24,6 +24,7 @@ import { connectRealtime, disconnectRealtime } from '@/socket';
 import { MainTabNavigator } from './MainTabNavigator';
 import { withAuthRequired } from './withAuthRequired';
 import type { CustomerStackParamList } from './types';
+import { SupportChatScreen } from '@/screens/chat/SupportChatScreen';
 
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
@@ -37,6 +38,7 @@ const ProtectedNotifications = withAuthRequired(NotificationsScreen);
 const ProtectedWriteReview = withAuthRequired(WriteReviewScreen);
 const ProtectedEditProfile = withAuthRequired(EditProfileScreen);
 const ProtectedChangePassword = withAuthRequired(ChangePasswordScreen);
+const ProtectedSupportChat = withAuthRequired(SupportChatScreen);
 
 export function MainStackNavigator() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -91,6 +93,7 @@ export function MainStackNavigator() {
       <Stack.Screen component={ProtectedWriteReview} name="WriteReview" options={{ title: 'Viết đánh giá' }} />
       <Stack.Screen component={ProtectedEditProfile} name="EditProfile" options={{ title: 'Thông tin cá nhân' }} />
       <Stack.Screen component={ProtectedChangePassword} name="ChangePassword" options={{ title: 'Đổi mật khẩu' }} />
+      <Stack.Screen component={ProtectedSupportChat} name="SupportChat" options={{ title: 'Chat với cửa hàng' }} />
     </Stack.Navigator>
   );
 }

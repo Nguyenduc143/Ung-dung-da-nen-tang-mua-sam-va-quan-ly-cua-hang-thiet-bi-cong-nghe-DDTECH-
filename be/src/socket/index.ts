@@ -42,6 +42,7 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
       if (payload.ver !== user.auth_version) throw new Error('Revoked session');
 
       socket.data.user = { id: user.id, role: user.role, authVersion: user.auth_version };
+      socket.data.tokenExpiresAt = payload.exp;
       next();
     } catch {
       next(new Error('Access token không hợp lệ, đã hết hạn hoặc tài khoản không hoạt động'));
@@ -72,4 +73,24 @@ export const emitToAdmins = (event: string, data: unknown): void => {
 
 export const emitToAll = (event: string, data: unknown): void => {
   socketServer?.emit(event, data);
+};
+
+// Chat events only go to the owning customer and active admins. Recheck sessions
+// before delivering private content, including sockets connected before logout-all.
+export const emitChatEvent = async (customerId: number, event: string, data: unknown): Promise<void> => {
+  if (!socketServer) return;
+  const sockets = await socketServer.in([`user:${customerId}`, 'role:ADMIN']).fetchSockets();
+  const users = new Map<number, Awaited<ReturnType<typeof findActiveUserById>>>();
+  for (const socket of sockets) {
+    const session = socket.data.user as { id: number; role: string; authVersion: number };
+    if (!users.has(session.id)) users.set(session.id, await findActiveUserById(session.id));
+    const user = users.get(session.id);
+    if (!user || user.auth_version !== session.authVersion || user.role !== session.role ||
+      (socket.data.tokenExpiresAt !== undefined && socket.data.tokenExpiresAt <= Date.now() / 1000) ||
+      (user.role !== 'ADMIN' && user.id !== customerId)) {
+      socket.disconnect(true);
+      continue;
+    }
+    socket.emit(event, data);
+  }
 };

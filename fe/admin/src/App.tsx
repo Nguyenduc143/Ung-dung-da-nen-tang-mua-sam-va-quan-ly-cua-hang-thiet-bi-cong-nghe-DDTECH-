@@ -23,6 +23,7 @@ const ReviewsPage = lazy(() => import('./pages/ReviewsPage').then((module) => ({
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((module) => ({ default: module.NotificationsPage })));
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then((module) => ({ default: module.ReportsPage })));
 const LoginPage = lazy(() => import('./pages/LoginPage').then((module) => ({ default: module.LoginPage })));
+const SupportChatPage = lazy(() => import('./pages/SupportChatPage').then((module) => ({ default: module.SupportChatPage })));
 
 const { Text } = Typography;
 
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/support-chat" element={<SupportChatPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>
